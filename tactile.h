@@ -9,7 +9,6 @@
 
 #include "Leap.h"
 #include <cassert>
-#include <chrono>
 #include <cstdlib>
 #include <iostream>
 #include <sstream>
@@ -20,20 +19,33 @@
 namespace tactile
 {
 
-typedef std::chrono::system_clock clock;
-
-std::string to_string (const clock::time_point &tp)
-{
-    std::time_t t = clock::to_time_t (tp);
-    std::string ts = std::ctime (&t);
-    ts.resize (ts.size () - 1);
-    return ts;
-}
-
 class Listener : public Leap::Listener
 {
     private:
+    bool done;
+    uint64_t frames;
+    uint64_t first_timestamp;
+    uint64_t last_timestamp;
     public:
+    Listener ()
+        : done (false)
+        , frames (0)
+        , first_timestamp (0)
+        , last_timestamp (0)
+    {
+    }
+    ~Listener ()
+    {
+        double secs = (last_timestamp - first_timestamp) / 1000000.0;
+        if (secs != 0.0)
+            std::clog << frames / secs << "fps" << std::endl;
+        else
+            std::clog << "nan fps" << std::endl;
+    }
+    bool is_done () const
+    {
+        return done;
+    }
     virtual void onInit (const Leap::Controller&)
     {
         std::clog << "onInit()" << std::endl;
@@ -48,14 +60,29 @@ class Listener : public Leap::Listener
     }
     virtual void onFrame(const Leap::Controller& c)
     {
-        std::clog << "onFrame()" << std::endl;
-        Leap::Frame f = c.frame();
-        // assume timestamp has the same epoch as 'clock'
-        std::chrono::microseconds d1 (f.timestamp ());
-        std::chrono::time_point<clock> ft (d1);
-        std::clog << "frame timestamp: " << to_string (ft) << std::endl;
-        std::chrono::time_point<clock> t2 = clock::now ();
-        std::clog << "current timestamp: " << t2.time_since_epoch ().count () << " " << to_string (t2) << std::endl;
+        const Leap::Frame &f = c.frame ();
+        uint64_t ts = f.timestamp ();
+        if (frames == 0)
+            first_timestamp = ts;
+        else
+            last_timestamp = ts;
+        ++frames;
+        const Leap::HandList &hands = f.hands ();
+        for (int i = 0; i < hands.count (); ++i)
+        {
+            const Leap::Hand &h = hands[i];
+            std::clog << "hand " << i;
+            if (!h.isValid ())
+            {
+                std::clog << " invalid" << std::endl;
+            }
+            else
+            {
+                std::clog << " fingers " << h.fingers ().count () << std::endl;
+                if (h.fingers ().count () == 5)
+                    done = true;
+            }
+        }
     }
 };
 

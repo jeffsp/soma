@@ -25,7 +25,7 @@ int main (int argc, char **argv)
 
         clog << "press control-C to quit" << endl;
 
-        while (true)
+        while (!l.is_done ())
         {
         }
 
