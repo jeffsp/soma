@@ -32,9 +32,16 @@ class sliding_time_window
         : duration_ms (duration_ms)
     {
     }
-    void add_sample (uint64_t timestamp_ms, const int n)
+    bool full (int percent, uint64_t timestamp_ms) const
     {
-        samples.emplace_front (timestamp_ms, n);
+        uint64_t start = samples.back ().first;
+        assert (start <= timestamp_ms);
+        if (timestamp_ms - start >= percent * duration_ms / 100)
+            return true;
+        return false;
+    }
+    void update (uint64_t timestamp_ms)
+    {
         while (!samples.empty ())
         {
             assert (timestamp_ms >= samples.back ().first);
@@ -43,6 +50,10 @@ class sliding_time_window
             else
                 break;
         }
+    }
+    void add_sample (uint64_t timestamp_ms, const int n)
+    {
+        samples.emplace_front (timestamp_ms, n);
     }
     int mode () const
     {
@@ -59,6 +70,13 @@ class sliding_time_window
             }
         }
         return m;
+    }
+    void dump (std::ostream &s) const
+    {
+        uint64_t start = samples.front ().first;
+        for (auto i : samples)
+            s << ' ' << '<' << start - i.first << ',' << i.second << '>';
+        s << std::endl;
     }
 };
 
@@ -78,7 +96,7 @@ class listener : public Leap::Listener
         , first_timestamp (0)
         , last_timestamp (0)
         , last_fingers (0)
-        , stw (800)
+        , stw (700)
     {
     }
     ~listener ()
@@ -120,15 +138,21 @@ class listener : public Leap::Listener
             const Leap::Hand &h = hands[i];
             if (h.isValid ())
             {
-                stw.add_sample (ts / 1000, h.fingers ().count ());
-                const int total = stw.mode ();
-                if (total != last_fingers)
+                uint64_t ms = ts / 1000;
+                stw.add_sample (ms, h.fingers ().count ());
+                stw.update (ms);
+                if (stw.full (75, ms))
                 {
-                    std::clog << " fingers " << total << std::endl;
-                    last_fingers = total;
+                    const int total = stw.mode ();
+                    if (total != last_fingers)
+                    {
+                        stw.dump (std::clog);
+                        std::clog << " fingers " << total << std::endl;
+                        last_fingers = total;
+                    }
+                    if (total == 5)
+                        done = true;
                 }
-                if (total == 5)
-                    done = true;
             }
         }
     }
