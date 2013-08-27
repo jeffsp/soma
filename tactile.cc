@@ -17,7 +17,7 @@ int main (int argc, char **argv)
         if (argc != 1)
             throw runtime_error (usage);
 
-        Listener l;
+        listener l;
         Leap::Controller c (l);
 
         // set to receive frames in the background
