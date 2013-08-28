@@ -42,17 +42,37 @@ typename T::value_type mode (const T &s)
 template<typename T>
 float movement_variance (const T &s)
 {
-    if (s.empty ())
+    if (s.size () < 2)
         return 0.0;
     const size_t total = s.size () - 1;
+    float x2 = 0.0f;
+    float x = 0.0f;
     typename T::value_type last = s[0];
     for (size_t i = 1; i < s.size (); ++i)
     {
-        // conpute it here
-        //float d = last & s[i];
+        float d = last.distanceTo (s[i]);
+        x2 += (d * d);
+        x += d;
         last = s[i];
     }
-    return 0.0;
+    // var = E[x^2]-E[x]^2
+    return (x2 / total) - (x / total) * (x / total);
+}
+
+template<typename T>
+float movement_average (const T &s)
+{
+    if (s.size () < 2)
+        return 0.0;
+    const size_t total = s.size () - 1;
+    float x = 0.0f;
+    typename T::value_type last = s[0];
+    for (size_t i = 1; i < s.size (); ++i)
+    {
+        x += last.distanceTo (s[i]);
+        last = s[i];
+    }
+    return (x / total);
 }
 
 template<typename T>
@@ -187,7 +207,8 @@ class finger_pointer
         w.add_sample (ts, f.tipPosition ());
         if (w.full (85, ts))
         {
-            std::clog << movement_variance (w.get_samples ()) << std::endl;
+            std::clog << sqrt (movement_variance (w.get_samples ())) << '\t';
+            std::clog << movement_average (w.get_samples ()) << std::endl;
         }
     }
 };
