@@ -24,36 +24,36 @@ namespace tactile
 class sliding_time_window
 {
     private:
-    uint64_t duration_ms;
+    uint64_t duration;
     std::deque<std::pair<uint64_t,int>> samples;
     mutable std::map<int,size_t> dist;
     public:
-    sliding_time_window (uint64_t duration_ms)
-        : duration_ms (duration_ms)
+    sliding_time_window (uint64_t duration)
+        : duration (duration)
     {
     }
-    bool full (int percent, uint64_t timestamp_ms) const
+    bool full (int percent, uint64_t ts) const
     {
         uint64_t start = samples.back ().first;
-        assert (start <= timestamp_ms);
-        if (timestamp_ms - start >= percent * duration_ms / 100)
+        assert (start <= ts);
+        if (ts - start >= percent * duration / 100)
             return true;
         return false;
     }
-    void update (uint64_t timestamp_ms)
+    void update (uint64_t ts)
     {
         while (!samples.empty ())
         {
-            assert (timestamp_ms >= samples.back ().first);
-            if (timestamp_ms - samples.back ().first > duration_ms)
+            assert (ts >= samples.back ().first);
+            if (ts - samples.back ().first > duration)
                 samples.pop_back ();
             else
                 break;
         }
     }
-    void add_sample (uint64_t timestamp_ms, const int n)
+    void add_sample (uint64_t ts, const int n)
     {
-        samples.emplace_front (timestamp_ms, n);
+        samples.emplace_front (ts, n);
     }
     int mode () const
     {
@@ -80,32 +80,87 @@ class sliding_time_window
     }
 };
 
+class frame_counter
+{
+    private:
+    uint64_t frames;
+    uint64_t first_ts;
+    uint64_t last_ts;
+    public:
+    frame_counter ()
+        : frames (0)
+        , first_ts (0)
+        , last_ts (0)
+    {
+    }
+    void update (uint64_t ts)
+    {
+        if (frames == 0)
+            first_ts = ts;
+        else
+            last_ts = ts;
+        ++frames;
+    }
+    int fps () const
+    {
+        int secs = (last_ts - first_ts) / 1000000;
+        if (secs != 0)
+            return frames / secs;
+        return -1;
+    }
+};
+
+class finger_counter
+{
+    private:
+    sliding_time_window stw;
+    int current_count;
+    int last_count;
+    public:
+    finger_counter (uint64_t duration)
+        : stw (duration)
+        , current_count (-1)
+        , last_count (-1)
+    {
+    }
+    void update (uint64_t ts, const Leap::HandList &hands)
+    {
+        stw.update (ts);
+        if (hands.isEmpty () || !hands[0].isValid ())
+            stw.add_sample (ts, 0);
+        else
+            stw.add_sample (ts, hands[0].fingers ().count ());
+        if (stw.full (85, ts))
+        {
+            last_count = current_count;
+            current_count = stw.mode ();
+        }
+    }
+    int count () const
+    {
+        return current_count;
+    }
+    bool is_changed () const
+    {
+        return current_count != last_count;
+    }
+};
+
 class listener : public Leap::Listener
 {
     private:
     bool done;
-    uint64_t frames;
-    uint64_t first_timestamp;
-    uint64_t last_timestamp;
-    int last_fingers;
-    sliding_time_window stw;
+    frame_counter frc;
+    finger_counter fic;
     public:
     listener ()
         : done (false)
-        , frames (0)
-        , first_timestamp (0)
-        , last_timestamp (0)
-        , last_fingers (0)
-        , stw (700)
+        , fic (700000)
     {
     }
     ~listener ()
     {
-        int secs = (last_timestamp - first_timestamp) / 1000000;
-        if (secs != 0)
-            std::clog << frames / secs << "fps" << std::endl;
-        else
-            std::clog << "nan fps" << std::endl;
+        std::clog << frc.fps () << "fps" << std::endl;
     }
     bool is_done () const
     {
@@ -126,35 +181,12 @@ class listener : public Leap::Listener
     virtual void onFrame(const Leap::Controller& c)
     {
         const Leap::Frame &f = c.frame ();
-        uint64_t ts = f.timestamp ();
-        if (frames == 0)
-            first_timestamp = ts;
-        else
-            last_timestamp = ts;
-        ++frames;
-        const Leap::HandList &hands = f.hands ();
-        for (int i = 0; i < hands.count (); ++i)
-        {
-            const Leap::Hand &h = hands[i];
-            if (h.isValid ())
-            {
-                uint64_t ms = ts / 1000;
-                stw.add_sample (ms, h.fingers ().count ());
-                stw.update (ms);
-                if (stw.full (75, ms))
-                {
-                    const int total = stw.mode ();
-                    if (total != last_fingers)
-                    {
-                        stw.dump (std::clog);
-                        std::clog << " fingers " << total << std::endl;
-                        last_fingers = total;
-                    }
-                    if (total == 5)
-                        done = true;
-                }
-            }
-        }
+        frc.update (f.timestamp ());
+        fic.update (f.timestamp (), f.hands ());
+        if (fic.is_changed ())
+            std::clog << " fingers " << fic.count () << std::endl;
+        if (fic.count () == 5)
+            done = true;
     }
 };
 
