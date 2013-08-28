@@ -12,7 +12,7 @@
 #include <cstdlib>
 #include <deque>
 #include <iostream>
-#include <map>
+#include <unordered_map>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -21,12 +21,46 @@
 namespace tactile
 {
 
+template<typename T>
+typename T::value_type mode (const T &s)
+{
+    std::unordered_map<typename T::value_type,size_t> dist;
+    size_t m_count = 0;
+    typename T::value_type m{};
+    for (auto i : s)
+    {
+        ++dist[i];
+        if (dist[i] > m_count)
+        {
+            m_count = dist[i];
+            m = i;
+        }
+    }
+    return m;
+}
+
+template<typename T>
+float movement_variance (const T &s)
+{
+    if (s.empty ())
+        return 0.0;
+    const size_t total = s.size () - 1;
+    typename T::value_type last = s[0];
+    for (size_t i = 1; i < s.size (); ++i)
+    {
+        // conpute it here
+        //float d = last & s[i];
+        last = s[i];
+    }
+    return 0.0;
+}
+
+template<typename T>
 class sliding_time_window
 {
     private:
     uint64_t duration;
-    std::deque<std::pair<uint64_t,int>> samples;
-    mutable std::map<int,size_t> dist;
+    std::deque<std::pair<uint64_t,T>> samples;
     public:
     sliding_time_window (uint64_t duration)
         : duration (duration)
@@ -51,25 +85,17 @@ class sliding_time_window
                 break;
         }
     }
-    void add_sample (uint64_t ts, const int n)
+    void add_sample (uint64_t ts, const T &n)
     {
         samples.emplace_front (ts, n);
     }
-    int mode () const
+    const std::vector<T> get_samples () const
     {
-        dist.clear ();
-        size_t m_count = 0;
-        int m = 0;
+        std::vector<T> s (samples.size ());
+        size_t index = 0;
         for (auto i : samples)
-        {
-            ++dist[i.second];
-            if (dist[i.second] > m_count)
-            {
-                m_count = dist[i.second];
-                m = i.second;
-            }
-        }
-        return m;
+            s[index++] = i.second;
+        return s;
     }
     void dump (std::ostream &s) const
     {
@@ -113,27 +139,27 @@ class frame_counter
 class finger_counter
 {
     private:
-    sliding_time_window stw;
+    sliding_time_window<int> w;
     int current_count;
     int last_count;
     public:
     finger_counter (uint64_t duration)
-        : stw (duration)
+        : w (duration)
         , current_count (-1)
         , last_count (-1)
     {
     }
     void update (uint64_t ts, const Leap::HandList &hands)
     {
-        stw.update (ts);
+        w.update (ts);
         if (hands.isEmpty () || !hands[0].isValid ())
-            stw.add_sample (ts, 0);
+            w.add_sample (ts, 0);
         else
-            stw.add_sample (ts, hands[0].fingers ().count ());
-        if (stw.full (85, ts))
+            w.add_sample (ts, hands[0].fingers ().count ());
+        if (w.full (85, ts))
         {
             last_count = current_count;
-            current_count = stw.mode ();
+            current_count = mode (w.get_samples ());
         }
     }
     int count () const
@@ -146,12 +172,33 @@ class finger_counter
     }
 };
 
+class finger_pointer
+{
+    private:
+    sliding_time_window<Leap::Vector> w;
+    public:
+    finger_pointer ()
+        : w (800000)
+    {
+    }
+    void update (uint64_t ts, const Leap::Finger &f)
+    {
+        w.update (ts);
+        w.add_sample (ts, f.tipPosition ());
+        if (w.full (85, ts))
+        {
+            std::clog << movement_variance (w.get_samples ()) << std::endl;
+        }
+    }
+};
+
 class listener : public Leap::Listener
 {
     private:
     bool done;
     frame_counter frc;
     finger_counter fic;
+    finger_pointer fip;
     public:
     listener ()
         : done (false)
@@ -187,6 +234,8 @@ class listener : public Leap::Listener
             std::clog << " fingers " << fic.count () << std::endl;
         if (fic.count () == 5)
             done = true;
+        else if (fic.count () == 1)
+            fip.update (f.timestamp (), f.hands ()[0].fingers ()[0]);
     }
 };
 
