@@ -40,6 +40,42 @@ typename T::value_type mode (const T &s)
 }
 
 template<typename T>
+float variance (const T &s)
+{
+    if (s.size () < 2)
+        return 0.0;
+    const size_t total = s.size () - 1;
+    float x2 = 0.0f;
+    float x = 0.0f;
+    typename T::value_type last = s[0];
+    for (size_t i = 1; i < s.size (); ++i)
+    {
+        float d = last - s[i];
+        x2 += (d * d);
+        x += d;
+        last = s[i];
+    }
+    // var = E[x^2]-E[x]^2
+    return (x2 / total) - (x / total) * (x / total);
+}
+
+template<typename T>
+float average (const T &s)
+{
+    if (s.size () < 2)
+        return 0.0;
+    const size_t total = s.size () - 1;
+    float x = 0.0f;
+    typename T::value_type last = s[0];
+    for (size_t i = 1; i < s.size (); ++i)
+    {
+        x += last - s[i];
+        last = s[i];
+    }
+    return (x / total);
+}
+
+template<typename T>
 float movement_variance (const T &s)
 {
     if (s.size () < 2)
@@ -195,22 +231,50 @@ class finger_counter
 class finger_pointer
 {
     private:
-    sliding_time_window<Leap::Vector> w;
+    static uint64_t duration () { return 200000; }
+    sliding_time_window<Leap::Vector> pos;
+    sliding_time_window<float> x;
+    sliding_time_window<float> y;
+    sliding_time_window<float> z;
     public:
     finger_pointer ()
-        : w (800000)
+        : pos (duration ())
+        , x (duration ())
+        , y (duration ())
+        , z (duration ())
     {
     }
     void update (uint64_t ts, const Leap::PointableList &p)
     {
         if (p.count () < 1)
             return;
-        w.update (ts);
-        w.add_sample (ts, p[0].tipPosition ());
-        if (w.full (85, ts))
+        pos.update (ts);
+        pos.add_sample (ts, p[0].tipPosition ());
+        x.update (ts);
+        x.add_sample (ts, p[0].tipPosition ().x);
+        y.update (ts);
+        y.add_sample (ts, p[0].tipPosition ().y);
+        z.update (ts);
+        z.add_sample (ts, p[0].tipPosition ().z);
+        if (pos.full (85, ts))
         {
-            std::clog << sqrt (movement_variance (w.get_samples ())) << '\t';
-            std::clog << movement_average (w.get_samples ()) << std::endl;
+            std::clog.width (20);
+            std::clog << sqrt (movement_variance (pos.get_samples ()));
+            std::clog.width (20);
+            std::clog << movement_average (pos.get_samples ());
+            std::clog.width (20);
+            std::clog << sqrt (variance (x.get_samples ()));
+            std::clog.width (20);
+            std::clog << average (x.get_samples ());
+            std::clog.width (20);
+            std::clog << sqrt (variance (y.get_samples ()));
+            std::clog.width (20);
+            std::clog << average (y.get_samples ());
+            std::clog.width (20);
+            std::clog << sqrt (variance (z.get_samples ()));
+            std::clog.width (20);
+            std::clog << average (z.get_samples ());
+            std::clog << std::endl;
         }
     }
 };

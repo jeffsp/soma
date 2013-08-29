@@ -4,6 +4,8 @@
 # @version 1.0
 # @date 2013-07-20
 
+import sys
+
 # waf project directories
 top = '.'
 out = 'build'
@@ -13,7 +15,7 @@ SOURCES='*.cc'
 CXXFLAGS=['-fopenmp','-Wall','-std=c++0x']
 INCLUDES='../Leap_Developer_Kit/LeapSDK/include'
 LIBPATHS='../Leap_Developer_Kit/LeapSDK/lib/x64'
-LIBS=['gomp','rt','Leap']
+LIBS=['Leap']
 
 # variant specific build flags
 DEBUG_CXXFLAGS=CXXFLAGS+['-g']
