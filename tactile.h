@@ -169,13 +169,13 @@ class finger_counter
         , last_count (-1)
     {
     }
-    void update (uint64_t ts, const Leap::HandList &hands)
+    void update (uint64_t ts, const Leap::PointableList &p)
     {
         w.update (ts);
-        if (hands.isEmpty () || !hands[0].isValid ())
+        if (p.isEmpty () || !p[0].isValid ())
             w.add_sample (ts, 0);
         else
-            w.add_sample (ts, hands[0].fingers ().count ());
+            w.add_sample (ts, p.count ());
         if (w.full (85, ts))
         {
             last_count = current_count;
@@ -201,10 +201,12 @@ class finger_pointer
         : w (800000)
     {
     }
-    void update (uint64_t ts, const Leap::Finger &f)
+    void update (uint64_t ts, const Leap::PointableList &p)
     {
+        if (p.count () < 1)
+            return;
         w.update (ts);
-        w.add_sample (ts, f.tipPosition ());
+        w.add_sample (ts, p[0].tipPosition ());
         if (w.full (85, ts))
         {
             std::clog << sqrt (movement_variance (w.get_samples ())) << '\t';
@@ -250,13 +252,13 @@ class listener : public Leap::Listener
     {
         const Leap::Frame &f = c.frame ();
         frc.update (f.timestamp ());
-        fic.update (f.timestamp (), f.hands ());
+        fic.update (f.timestamp (), f.pointables ());
         if (fic.is_changed ())
             std::clog << " fingers " << fic.count () << std::endl;
         if (fic.count () == 5)
             done = true;
         else if (fic.count () == 1)
-            fip.update (f.timestamp (), f.hands ()[0].fingers ()[0]);
+            fip.update (f.timestamp (), f.pointables ());
     }
 };
 
