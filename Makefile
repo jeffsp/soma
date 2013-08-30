@@ -3,7 +3,7 @@ all:
 	waf
 
 run: all
-	./build/debug/tactile
+	./build/debug/soma
 
 check: all
 	$(MAKE) -C tests check

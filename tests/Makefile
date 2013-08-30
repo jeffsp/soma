@@ -5,5 +5,5 @@ all:
 run: check
 
 check: all
-	./build/debug/test_tactile verbose=true
-	./build/release/test_tactile
+	./build/debug/test_soma verbose=true
+	./build/release/test_soma

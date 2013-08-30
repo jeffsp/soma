@@ -1,14 +1,14 @@
-/// @file tactile.cc
-/// @brief tactile leap interface
+/// @file soma.cc
+/// @brief soma leap interface
 /// @author Jeff Perry <jeffsp@gmail.com>
 /// @version 1.0
 /// @date 2013-08-25
 
-#include "tactile.h"
+#include "soma.h"
 
 using namespace std;
-using namespace tactile;
-const string usage = "usage: tactile";
+using namespace soma;
+const string usage = "usage: soma";
 
 int main (int argc, char **argv)
 {

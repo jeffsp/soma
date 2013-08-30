@@ -1,15 +1,15 @@
-/// @file test_tactile.cc
-/// @brief test tactile leap interface
+/// @file test_soma.cc
+/// @brief test soma leap interface
 /// @author Jeff Perry <jeffsp@gmail.com>
 /// @version 1.0
 /// @date 2013-08-29
 
 #include <sstream>
-#include "tactile.h"
+#include "soma.h"
 
 using namespace std;
-using namespace tactile;
-const string usage = "usage: test_tactile [verbose]";
+using namespace soma;
+const string usage = "usage: test_soma [verbose]";
 
 inline void Verify (const char *e, const char *file, unsigned line)
 {

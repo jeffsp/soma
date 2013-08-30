@@ -1,11 +1,11 @@
-/// @file tactile.h
-/// @brief tactile software for Leap controller
+/// @file soma.h
+/// @brief soma software for Leap controller
 /// @author Jeff Perry <jeffsp@gmail.com>
 /// @version 1.0
 /// @date 2013-08-26
 
-#ifndef TACTILE_H
-#define TACTILE_H
+#ifndef SOMA_H
+#define SOMA_H
 
 #include "Leap.h"
 #include <algorithm>
@@ -19,7 +19,7 @@
 #include <string>
 #include <vector>
 
-namespace tactile
+namespace soma
 {
 
 template<typename T>
