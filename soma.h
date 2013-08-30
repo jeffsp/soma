@@ -65,7 +65,7 @@ float variance (const T &x)
 }
 
 template<typename T>
-std::vector<float> get_distances (const T &x)
+std::vector<float> distances (const T &x)
 {
     if (x.size () < 2)
         return std::vector<float> ();
@@ -189,82 +189,6 @@ class finger_counter
     bool is_changed () const
     {
         return current_count != last_count;
-    }
-};
-
-class finger_pointer
-{
-    private:
-    sliding_time_window<Leap::Vector> pos;
-    public:
-    finger_pointer (uint64_t duration)
-        : pos (duration)
-    {
-    }
-    void update (uint64_t ts, const Leap::PointableList &p)
-    {
-        if (p.count () < 1)
-            return;
-        pos.update (ts);
-        pos.add_sample (ts, p[0].tipPosition ());
-        if (pos.full (85, ts))
-        {
-            auto s = pos.get_samples ();
-            auto d = get_distances (s);
-            std::clog.width (20);
-            std::clog << sqrt (variance (d));
-            std::clog.width (20);
-            std::clog << average (d);
-            std::clog << std::endl;
-        }
-    }
-};
-
-class listener : public Leap::Listener
-{
-    private:
-    bool done;
-    frame_counter frc;
-    finger_counter fic;
-    finger_pointer fip;
-    public:
-    listener ()
-        : done (false)
-        , fic (200000)
-        , fip (200000)
-    {
-    }
-    ~listener ()
-    {
-        std::clog << frc.fps () << "fps" << std::endl;
-    }
-    bool is_done () const
-    {
-        return done;
-    }
-    virtual void onInit (const Leap::Controller&)
-    {
-        std::clog << "onInit()" << std::endl;
-    }
-    virtual void onConnect (const Leap::Controller&)
-    {
-        std::clog << "onConnect()" << std::endl;
-    }
-    virtual void onDisconnect (const Leap::Controller&)
-    {
-        std::clog << "onDisconnect()" << std::endl;
-    }
-    virtual void onFrame(const Leap::Controller& c)
-    {
-        const Leap::Frame &f = c.frame ();
-        frc.update (f.timestamp ());
-        fic.update (f.timestamp (), f.pointables ());
-        if (fic.is_changed ())
-            std::clog << " fingers " << fic.count () << std::endl;
-        if (fic.count () == 5)
-            done = true;
-        else if (fic.count () == 1)
-            fip.update (f.timestamp (), f.pointables ());
     }
 };
 

@@ -10,32 +10,108 @@
 
 using namespace std;
 using namespace soma;
+using namespace Leap;
 const string usage = "usage: soma_pointer";
 
-class X
+class X11
 {
     private:
     Display *d;
     public:
-    X ()
+    X11 ()
         : d (XOpenDisplay (0))
     {
         if (!d)
             throw runtime_error ("Could not open X display");
     }
-    ~X ()
+    ~X11 ()
     {
         XCloseDisplay (d);
     }
-    void Click (int button, Bool down)
+    void click (int button, Bool down)
     {
         XTestFakeButtonEvent (d, button, down, CurrentTime);
         XFlush (d);
     }
-    void Move (int x, int y)
+    void move (int x, int y)
     {
         XWarpPointer (d, None, None, 0, 0, 0, 0, x, y);
         XFlush (d);
+    }
+};
+
+class finger_pointer : public Listener
+{
+    private:
+    bool done;
+    frame_counter frc;
+    finger_counter fic;
+    sliding_time_window<Vector> pos;
+    X11 x11;
+    template<typename T>
+    void move (const T &s)
+    {
+        if (s.size () < 2)
+            return;
+        auto a = s[s.size () - 1];
+        auto b = s[s.size () - 2];
+        auto x = a.x - b.x;
+        auto y = a.y - b.y;
+        auto z = a.z - b.z;
+        if (z > x && z > y && z > 1)
+            std::clog << "Click" << std::endl;
+        else
+            x11.move (-x, y);
+    }
+
+    public:
+    finger_pointer (uint64_t window_duration)
+        : done (false)
+        , fic (window_duration)
+        , pos (window_duration)
+    {
+    }
+    bool is_done () const
+    {
+        return done;
+    }
+    virtual void onInit (const Controller&)
+    {
+        clog << "onInit()" << endl;
+    }
+    virtual void onConnect (const Controller&)
+    {
+        clog << "onConnect()" << endl;
+    }
+    virtual void onDisconnect (const Controller&)
+    {
+        clog << "onDisconnect()" << endl;
+    }
+    virtual void onFrame(const Controller& c)
+    {
+        const Frame &f = c.frame ();
+        frc.update (f.timestamp ());
+        fic.update (f.timestamp (), f.pointables ());
+        if (fic.is_changed ())
+            clog << " fingers " << fic.count () << endl;
+        if (fic.count () == 5)
+            done = true;
+        else if (fic.count () == 1)
+        {
+            auto p = f.pointables ();
+            if (p.count () == 1)
+            {
+                pos.update (f.timestamp ());
+                pos.add_sample (f.timestamp (), p[0].tipPosition ());
+                if (pos.full (85, f.timestamp ()))
+                {
+                    auto s = pos.get_samples ();
+                    auto d = distances (s);
+                    if (average (d) > 1.0f)
+                        move (s);
+                }
+            }
+        }
     }
 };
 
@@ -46,21 +122,16 @@ int main (int argc, char **argv)
         if (argc != 1)
             throw runtime_error (usage);
 
-        listener l;
-        Leap::Controller c (l);
+        finger_pointer fp (200000);
+        Controller c (fp);
 
         // set to receive frames in the background
-        c.setPolicyFlags (Leap::Controller::POLICY_BACKGROUND_FRAMES);
-
-        X x;
+        c.setPolicyFlags (Controller::POLICY_BACKGROUND_FRAMES);
 
         clog << "press control-C to quit" << endl;
 
-        while (!l.is_done ())
+        while (!fp.is_done ())
         {
-            x.Click (0, true);
-            x.Click (0, false);
-            x.Move (100, 100);
         }
 
         return 0;
