@@ -4,3 +4,6 @@ all:
 
 run: all
 	./build/debug/tactile
+
+check: all
+	$(MAKE) -C tests check

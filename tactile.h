@@ -8,6 +8,7 @@
 #define TACTILE_H
 
 #include "Leap.h"
+#include <algorithm>
 #include <cassert>
 #include <cstdlib>
 #include <deque>
@@ -22,12 +23,12 @@ namespace tactile
 {
 
 template<typename T>
-typename T::value_type mode (const T &s)
+typename T::value_type mode (const T &x)
 {
     std::unordered_map<typename T::value_type,size_t> dist;
     size_t m_count = 0;
     typename T::value_type m{};
-    for (auto i : s)
+    for (auto i : x)
     {
         ++dist[i];
         if (dist[i] > m_count)
@@ -40,75 +41,38 @@ typename T::value_type mode (const T &s)
 }
 
 template<typename T>
-float variance (const T &s)
+float average (const T &x)
 {
-    if (s.size () < 2)
+    if (x.empty ())
+        return 0.0f;
+    return std::accumulate (x.begin (), x.end (), 0.0) / x.size ();
+}
+
+template<typename T>
+float variance (const T &x)
+{
+    if (x.empty ())
         return 0.0;
-    const size_t total = s.size () - 1;
-    float x2 = 0.0f;
-    float x = 0.0f;
-    typename T::value_type last = s[0];
-    for (size_t i = 1; i < s.size (); ++i)
+    float sum2 = 0.0f;
+    float sum = 0.0f;
+    for (auto i : x)
     {
-        float d = last - s[i];
-        x2 += (d * d);
-        x += d;
-        last = s[i];
+        sum2 += (i * i);
+        sum += i;
     }
     // var = E[x^2]-E[x]^2
-    return (x2 / total) - (x / total) * (x / total);
+    return (sum2 / x.size ()) - (sum / x.size ()) * (sum / x.size ());
 }
 
 template<typename T>
-float average (const T &s)
+std::vector<float> get_distances (const T &x)
 {
-    if (s.size () < 2)
-        return 0.0;
-    const size_t total = s.size () - 1;
-    float x = 0.0f;
-    typename T::value_type last = s[0];
-    for (size_t i = 1; i < s.size (); ++i)
-    {
-        x += last - s[i];
-        last = s[i];
-    }
-    return (x / total);
-}
-
-template<typename T>
-float movement_variance (const T &s)
-{
-    if (s.size () < 2)
-        return 0.0;
-    const size_t total = s.size () - 1;
-    float x2 = 0.0f;
-    float x = 0.0f;
-    typename T::value_type last = s[0];
-    for (size_t i = 1; i < s.size (); ++i)
-    {
-        float d = last.distanceTo (s[i]);
-        x2 += (d * d);
-        x += d;
-        last = s[i];
-    }
-    // var = E[x^2]-E[x]^2
-    return (x2 / total) - (x / total) * (x / total);
-}
-
-template<typename T>
-float movement_average (const T &s)
-{
-    if (s.size () < 2)
-        return 0.0;
-    const size_t total = s.size () - 1;
-    float x = 0.0f;
-    typename T::value_type last = s[0];
-    for (size_t i = 1; i < s.size (); ++i)
-    {
-        x += last.distanceTo (s[i]);
-        last = s[i];
-    }
-    return (x / total);
+    if (x.size () < 2)
+        return std::vector<float> ();
+    std::vector<float> d (x.size () - 1);
+    for (size_t i = 0; i < d.size (); ++i)
+        d[i] = x[i].distanceTo (x[i + 1]);
+    return d;
 }
 
 template<typename T>
@@ -231,17 +195,10 @@ class finger_counter
 class finger_pointer
 {
     private:
-    static uint64_t duration () { return 200000; }
     sliding_time_window<Leap::Vector> pos;
-    sliding_time_window<float> x;
-    sliding_time_window<float> y;
-    sliding_time_window<float> z;
     public:
-    finger_pointer ()
-        : pos (duration ())
-        , x (duration ())
-        , y (duration ())
-        , z (duration ())
+    finger_pointer (uint64_t duration)
+        : pos (duration)
     {
     }
     void update (uint64_t ts, const Leap::PointableList &p)
@@ -250,31 +207,14 @@ class finger_pointer
             return;
         pos.update (ts);
         pos.add_sample (ts, p[0].tipPosition ());
-        x.update (ts);
-        x.add_sample (ts, p[0].tipPosition ().x);
-        y.update (ts);
-        y.add_sample (ts, p[0].tipPosition ().y);
-        z.update (ts);
-        z.add_sample (ts, p[0].tipPosition ().z);
         if (pos.full (85, ts))
         {
+            auto s = pos.get_samples ();
+            auto d = get_distances (s);
             std::clog.width (20);
-            std::clog << sqrt (movement_variance (pos.get_samples ()));
+            std::clog << sqrt (variance (d));
             std::clog.width (20);
-            std::clog << movement_average (pos.get_samples ());
-            std::clog.width (20);
-            std::clog << sqrt (variance (x.get_samples ()));
-            std::clog.width (20);
-            std::clog << average (x.get_samples ());
-            std::clog.width (20);
-            std::clog << sqrt (variance (y.get_samples ()));
-            std::clog.width (20);
-            std::clog << average (y.get_samples ());
-            std::clog.width (20);
-            std::clog << sqrt (variance (z.get_samples ()));
-            std::clog.width (20);
-            std::clog << average (z.get_samples ());
-            std::clog << std::endl;
+            std::clog << average (d);
         }
     }
 };
@@ -289,7 +229,8 @@ class listener : public Leap::Listener
     public:
     listener ()
         : done (false)
-        , fic (700000)
+        , fic (200000)
+        , fip (200000)
     {
     }
     ~listener ()
