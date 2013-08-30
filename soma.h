@@ -215,6 +215,7 @@ class finger_pointer
             std::clog << sqrt (variance (d));
             std::clog.width (20);
             std::clog << average (d);
+            std::clog << std::endl;
         }
     }
 };
