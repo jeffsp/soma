@@ -17,7 +17,7 @@ INCLUDES='../Leap_Developer_Kit/LeapSDK/include'
 # osx LIBPATHS='/Users/jeffperry/Projects/leap/Leap_Developer_Kit/LeapSDK/lib/'
 # linux LIBPATHS='../Leap_Developer_Kit/LeapSDK/lib/x64'
 LIBPATHS='/Users/jeffperry/Projects/leap/Leap_Developer_Kit/LeapSDK/lib/'
-LIBS=['Leap']
+LIBS=['Leap','X11','Xtst']
 
 # variant specific build flags
 DEBUG_CXXFLAGS=CXXFLAGS+['-g']
