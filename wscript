@@ -17,7 +17,18 @@ INCLUDES='../Leap_Developer_Kit/LeapSDK/include'
 # osx LIBPATHS='/Users/jeffperry/Projects/leap/Leap_Developer_Kit/LeapSDK/lib/'
 # linux LIBPATHS='../Leap_Developer_Kit/LeapSDK/lib/x64'
 LIBPATHS='/Users/jeffperry/Projects/leap/Leap_Developer_Kit/LeapSDK/lib/'
-LIBS=['Leap','X11','Xtst']
+if sys.platform=="linux2":
+    LIBS=['Leap','X11','Xtst']
+    LINKFLAGS=['']
+elif sys.platform=='darwin':
+    LIBS=['Leap']
+    LINKFLAGS=['-framework ApplicationServices']
+elif sys.platform=='windows':
+    LIBS=['Leap']
+    LINKFLAGS=['']
+else:
+    LIBS=['Leap']
+    LINKFLAGS=['']
 
 # variant specific build flags
 DEBUG_CXXFLAGS=CXXFLAGS+['-g']
@@ -61,4 +72,4 @@ def build(ctx):
     else:
         # the executable name is the filename without the extension
         for s in ctx.env.SOURCES:
-            ctx.program(source=s,target=s.replace('.cc',''),includes=INCLUDES,lib=LIBS,libpath=LIBPATHS)
+            ctx.program(source=s,target=s.replace('.cc',''),includes=INCLUDES,lib=LIBS,libpath=LIBPATHS,linkflags=LINKFLAGS)

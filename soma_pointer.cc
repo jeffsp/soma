@@ -5,26 +5,35 @@
 /// @date 2013-08-30
 
 #include "soma.h"
+
+#ifdef __linux__
 #include <X11/Xlib.h>
 #include <X11/extensions/XTest.h>
+#elif defined(__APPLE__) && defined(__MACH__)
+#include <ApplicationServices/ApplicationServices.h>
+#elif defined(_MSC_VER)
+#else
+#error("unknown OS")
+#endif
 
 using namespace std;
 using namespace soma;
 using namespace Leap;
 const string usage = "usage: soma_pointer";
 
-class X11
+#ifdef __linux__
+class Mouse
 {
     private:
     Display *d;
     public:
-    X11 ()
+    Mouse ()
         : d (XOpenDisplay (0))
     {
         if (!d)
             throw runtime_error ("Could not open X display");
     }
-    ~X11 ()
+    ~Mouse ()
     {
         XCloseDisplay (d);
     }
@@ -39,6 +48,28 @@ class X11
         XFlush (d);
     }
 };
+#elif defined(__APPLE__) && defined(__MACH__)
+class Mouse
+{
+    private:
+    public:
+    void click (int button, bool down)
+    {
+    }
+    void move (int x, int y)
+    {
+        CGEventPost (kCGHIDEventTap,
+            CGEventCreateMouseEvent
+                (NULL,
+                 kCGEventMouseMoved,
+                 CGPointMake(x, y),
+                 kCGMouseButtonLeft));
+    }
+};
+#elif defined(_MSC_VER)
+#else
+#error("unknown OS")
+#endif
 
 class finger_pointer : public Listener
 {
@@ -47,7 +78,7 @@ class finger_pointer : public Listener
     frame_counter frc;
     finger_counter fic;
     sliding_time_window<Vector> pos;
-    X11 x11;
+    Mouse mouse;
     template<typename T>
     void move (const T &s)
     {
@@ -61,7 +92,7 @@ class finger_pointer : public Listener
         if (z > x && z > y && z > 1)
             std::clog << "Click" << std::endl;
         else
-            x11.move (-x, y);
+            mouse.move (-x, y);
     }
 
     public:
