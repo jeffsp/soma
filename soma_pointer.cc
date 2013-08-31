@@ -10,7 +10,6 @@
 #include <X11/Xlib.h>
 #include <X11/extensions/XTest.h>
 #elif defined(__APPLE__) && defined(__MACH__)
-#include <ApplicationServices/ApplicationServices.h>
 #elif defined(_MSC_VER)
 #else
 #error("unknown OS")
@@ -21,7 +20,6 @@ using namespace soma;
 using namespace Leap;
 const string usage = "usage: soma_pointer";
 
-#ifdef __linux__
 class Mouse
 {
     private:
@@ -48,28 +46,6 @@ class Mouse
         XFlush (d);
     }
 };
-#elif defined(__APPLE__) && defined(__MACH__)
-class Mouse
-{
-    private:
-    public:
-    void click (int button, bool down)
-    {
-    }
-    void move (int x, int y)
-    {
-        CGEventPost (kCGHIDEventTap,
-            CGEventCreateMouseEvent
-                (NULL,
-                 kCGEventMouseMoved,
-                 CGPointMake(x, y),
-                 kCGMouseButtonLeft));
-    }
-};
-#elif defined(_MSC_VER)
-#else
-#error("unknown OS")
-#endif
 
 class finger_pointer : public Listener
 {
