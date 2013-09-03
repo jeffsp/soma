@@ -14,9 +14,7 @@ out = 'build'
 SOURCES='*.cc'
 CXXFLAGS=['-fopenmp','-Wall','-std=c++0x']
 INCLUDES='../Leap_Developer_Kit/LeapSDK/include'
-# osx LIBPATHS='/Users/jeffperry/Projects/leap/Leap_Developer_Kit/LeapSDK/lib/'
-# linux LIBPATHS='../Leap_Developer_Kit/LeapSDK/lib/x64'
-LIBPATHS='/Users/jeffperry/Projects/leap/Leap_Developer_Kit/LeapSDK/lib/'
+LIBPATHS=''
 LIBS=['Leap','X11','Xtst']
 
 # variant specific build flags

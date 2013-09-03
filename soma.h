@@ -45,20 +45,20 @@ typename T::value_type mode (const T &x)
 }
 
 template<typename T>
-float average (const T &x)
+double average (const T &x)
 {
     if (x.empty ())
-        return 0.0f;
+        return 0.0;
     return std::accumulate (x.begin (), x.end (), 0.0) / x.size ();
 }
 
 template<typename T>
-float variance (const T &x)
+double variance (const T &x)
 {
     if (x.empty ())
         return 0.0;
-    float sum2 = 0.0f;
-    float sum = 0.0f;
+    double sum2 = 0.0;
+    double sum = 0.0;
     for (auto i : x)
     {
         sum2 += (i * i);
@@ -69,11 +69,11 @@ float variance (const T &x)
 }
 
 template<typename T>
-std::vector<float> distances (const T &x)
+std::vector<double> distances (const T &x)
 {
     if (x.size () < 2)
-        return std::vector<float> ();
-    std::vector<float> d (x.size () - 1);
+        return std::vector<double> ();
+    std::vector<double> d (x.size () - 1);
     for (size_t i = 0; i < d.size (); ++i)
         d[i] = x[i].distanceTo (x[i + 1]);
     return d;
@@ -163,7 +163,7 @@ class frame_counter
 class finger_counter
 {
     private:
-    sliding_time_window<int> w;
+    sliding_time_window<uint64_t> w;
     int current_count;
     int last_count;
     public:
@@ -194,6 +194,30 @@ class finger_counter
     {
         return current_count != last_count;
     }
+};
+
+class small_hand;
+class big_hand;
+
+template<typename H>
+struct hand_traits
+{
+    static constexpr float pinch_min = 1.0;
+    static constexpr float pinch_max = 1.0;
+};
+
+template<>
+struct hand_traits<small_hand>
+{
+    static constexpr float pinch_min = 1.0;
+    static constexpr float pinch_max = 1.0;
+};
+
+template<>
+struct hand_traits<big_hand>
+{
+    static constexpr float pinch_min = 1.0;
+    static constexpr float pinch_max = 1.0;
 };
 
 }
