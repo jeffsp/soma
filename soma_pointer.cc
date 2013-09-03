@@ -5,6 +5,7 @@
 /// @date 2013-08-30
 
 #include "soma.h"
+#include "options.h"
 #include <X11/Xlib.h>
 #include <X11/extensions/XTest.h>
 
@@ -122,6 +123,27 @@ int main (int argc, char **argv)
         if (argc != 1)
             throw runtime_error (usage);
 
+        // options get saved here
+        string config_fn = get_config_dir () + "/somarc";
+
+        // configurable options
+        options opts;
+
+        // if the config file does not exist, write one
+        {
+            ifstream ifs (config_fn.c_str ());
+            if (!ifs)
+                write (opts, config_fn);
+        }
+
+        // read in the config file
+        {
+            ifstream ifs (config_fn.c_str ());
+            if (!ifs) // if it's not there, notify the user
+                clog << "warning: could not read configuration options" << endl;
+            else
+                read (opts, config_fn);
+        }
         finger_pointer fp (200000);
         Controller c (fp);
 

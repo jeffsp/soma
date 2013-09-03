@@ -22,6 +22,10 @@
 namespace soma
 {
 
+/// @brief version info
+const int MAJOR_REVISION = 0;
+const int MINOR_REVISION = 2;
+
 template<typename T>
 typename T::value_type mode (const T &x)
 {
