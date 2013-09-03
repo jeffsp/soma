@@ -20,18 +20,18 @@ using namespace soma;
 using namespace Leap;
 const string usage = "usage: soma_pointer";
 
-class Mouse
+class mouse
 {
     private:
     Display *d;
     public:
-    Mouse ()
+    mouse ()
         : d (XOpenDisplay (0))
     {
         if (!d)
             throw runtime_error ("Could not open X display");
     }
-    ~Mouse ()
+    ~mouse ()
     {
         XCloseDisplay (d);
     }
@@ -86,16 +86,12 @@ class pinch_1d_control
     }
 };
 
-class finger_pointer : public Listener
+class index_pointer
 {
     private:
-    bool done;
-    frame_counter frc;
-    finger_counter fic;
-    pinch_1d_control p1d;
-    sliding_time_window<Vector> pos;
+    sliding_time_window<Vector> w;
     float scale;
-    Mouse mouse;
+    mouse m;
     template<typename T>
     void move (const T &s)
     {
@@ -109,27 +105,14 @@ class finger_pointer : public Listener
         if (z > x && z > y && z > 1)
             std::clog << "Click" << std::endl;
         else
-            mouse.move (scale * -x, scale * y);
+            m.move (scale * -x, scale * y);
     }
     public:
-    finger_pointer (uint64_t finger_counter_window_duration,
-        uint64_t finger_1d_control_window_duration,
-        uint64_t position_window_duration,
+    index_pointer (uint64_t position_window_duration,
         float scale = 2.0)
-        : done (false)
-        , fic (finger_counter_window_duration)
-        , p1d (finger_1d_control_window_duration)
-        , pos (position_window_duration)
+        : w (position_window_duration)
         , scale (scale)
     {
-    }
-    ~finger_pointer ()
-    {
-        clog << frc.fps () << "fps" << endl;
-    }
-    bool is_done () const
-    {
-        return done;
     }
     float get_scale () const
     {
@@ -138,6 +121,48 @@ class finger_pointer : public Listener
     void set_scale (float s)
     {
         scale = s;
+    }
+    void update (uint64_t ts, const Leap::PointableList &p)
+    {
+        w.update (ts);
+        if (p.count () != 1 || !p[0].isValid ())
+            return;
+        w.add_sample (ts, p[0].tipPosition ());
+        if (w.full (85, ts))
+        {
+            auto s = w.get_samples ();
+            auto d = distances (s);
+            if (average (d) > 1.0f)
+                move (s);
+        }
+    }
+};
+
+class soma_pointer : public Listener
+{
+    private:
+    bool done;
+    frame_counter frc;
+    finger_counter fic;
+    pinch_1d_control p1d;
+    index_pointer ip;
+    public:
+    soma_pointer (uint64_t finger_counter_window_duration,
+        uint64_t finger_1d_control_window_duration,
+        uint64_t position_window_duration)
+        : done (false)
+        , fic (finger_counter_window_duration)
+        , p1d (finger_1d_control_window_duration)
+        , ip (position_window_duration)
+    {
+    }
+    ~soma_pointer ()
+    {
+        clog << frc.fps () << "fps" << endl;
+    }
+    bool is_done () const
+    {
+        return done;
     }
     virtual void onInit (const Controller&)
     {
@@ -160,28 +185,8 @@ class finger_pointer : public Listener
             clog << " fingers " << fic.count () << endl;
         if (fic.count () == 5)
             done = true;
-        else if (fic.count () == 2)
-        {
-            p1d.update (f.timestamp (), f.pointables ());
-            set_scale ((p1d.get_distance () - p1d.get_min ()) / 10);
-            clog << get_scale () << endl;
-        }
-        else if (fic.count () == 1)
-        {
-            auto p = f.pointables ();
-            if (p.count () == 1)
-            {
-                pos.update (f.timestamp ());
-                pos.add_sample (f.timestamp (), p[0].tipPosition ());
-                if (pos.full (85, f.timestamp ()))
-                {
-                    auto s = pos.get_samples ();
-                    auto d = distances (s);
-                    if (average (d) > 1.0f)
-                        move (s);
-                }
-            }
-        }
+        ip.update (f.timestamp (), f.pointables ());
+        p1d.update (f.timestamp (), f.pointables ());
     }
 };
 
@@ -196,7 +201,7 @@ int main (int argc, char **argv)
         if (argc != 1)
             throw runtime_error (usage);
 
-        finger_pointer fp (
+        soma_pointer fp (
             FINGER_COUNTER_WINDOW_DURATION,
             PINCH_1D_CONTROL_WINDOW_DURATION,
             POSITION_WINDOW_DURATION);
