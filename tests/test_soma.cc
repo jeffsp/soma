@@ -5,20 +5,12 @@
 /// @date 2013-08-29
 
 #include <sstream>
-#include "soma.h"
+#include "../soma.h"
+#include "verify.h"
 
 using namespace std;
 using namespace soma;
 const string usage = "usage: test_soma [verbose]";
-
-inline void Verify (const char *e, const char *file, unsigned line)
-{
-    std::stringstream s;
-    s << "verification failed in " << file << ", line " << line << ": " << e;
-    throw std::runtime_error (s.str ());
-}
-
-#define VERIFY(e) (void)((e) || (Verify (#e, __FILE__, __LINE__), 0))
 
 void test_stats (const bool verbose)
 {

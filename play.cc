@@ -9,6 +9,7 @@ int main()
 {
     try
     {
+        /*
         const double R=8000; // sample rate (samples per second)
         const double C=261.625565; // frequency of middle-C (hertz)
         //const double F=R/256; // bytebeat frequency of 1*t due to 8-bit truncation (hertz)
@@ -31,6 +32,7 @@ int main()
         fputc (EOF, fp);
 
         pclose (fp);
+        */
 
         return 0;
     }

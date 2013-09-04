@@ -13,9 +13,9 @@ out = 'build'
 # global definitions
 SOURCES='*.cc'
 CXXFLAGS=['-fopenmp','-Wall','-std=c++0x']
-INCLUDES='.. ../../Leap_Developer_Kit/LeapSDK/include'
+INCLUDES='../../Leap_Developer_Kit/LeapSDK/include'
 LIBPATHS='../../Leap_Developer_Kit/LeapSDK/lib/x64'
-LIBS=['Leap']
+LIBS=['Leap','asound']
 
 # variant specific build flags
 DEBUG_CXXFLAGS=CXXFLAGS+['-g']

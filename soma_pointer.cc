@@ -4,6 +4,7 @@
 /// @version 1.0
 /// @date 2013-08-30
 
+#include "audio.h"
 #include "soma.h"
 #include "options.h"
 #ifdef __linux__
@@ -146,14 +147,18 @@ class soma_pointer : public Listener
     finger_counter fic;
     pinch_1d_control p1d;
     index_pointer ip;
+    bool sound_flag;
+    audio au;
     public:
     soma_pointer (uint64_t finger_counter_window_duration,
         uint64_t finger_1d_control_window_duration,
-        uint64_t position_window_duration)
+        uint64_t position_window_duration,
+        bool sound_flag)
         : done (false)
         , fic (finger_counter_window_duration)
         , p1d (finger_1d_control_window_duration)
         , ip (position_window_duration)
+        , sound_flag (sound_flag)
     {
     }
     ~soma_pointer ()
@@ -184,7 +189,11 @@ class soma_pointer : public Listener
         if (fic.is_changed ())
             clog << " fingers " << fic.count () << endl;
         if (fic.count () == 5)
+        {
+            if (sound_flag && !done)
+                au.play (131, 100);
             done = true;
+        }
         ip.update (f.timestamp (), f.pointables ());
         p1d.update (f.timestamp (), f.pointables ());
     }
@@ -225,7 +234,8 @@ int main (int argc, char **argv)
         soma_pointer fp (
             FINGER_COUNTER_WINDOW_DURATION,
             PINCH_1D_CONTROL_WINDOW_DURATION,
-            POSITION_WINDOW_DURATION);
+            POSITION_WINDOW_DURATION,
+            opts.get_sound ());
         Controller c (fp);
 
         // set to receive frames in the background
