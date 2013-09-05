@@ -31,7 +31,6 @@ int main (int argc, char **)
     try
     {
         const bool verbose = (argc > 1);
-
         test_stats (verbose);
 
         return 0;

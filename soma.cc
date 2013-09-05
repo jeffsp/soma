@@ -20,7 +20,6 @@ class test_listener : public Listener
     public:
     test_listener (uint64_t window_duration)
         : done (false)
-        , fic (200000)
     {
     }
     ~test_listener ()
@@ -49,7 +48,7 @@ class test_listener : public Listener
         frc.update (f.timestamp ());
         fic.update (f.timestamp (), f.pointables ());
         if (fic.is_changed ())
-            clog << " fingers " << fic.count () << endl;
+            clog << " fingers " << fic.count () << '\t' << fic.certainty () << endl;
         if (fic.count () == 5)
             done = true;
     }

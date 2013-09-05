@@ -46,12 +46,10 @@ class audio
     void play (int freq = 262, int millisecs = 1000)
     {
         const int SAMPLES = SAMPLE_RATE * millisecs / 1000;
-        std::clog << SAMPLES << std::endl;
         std::vector<uint8_t> samples (SAMPLES);
         for (int t = 0; t < SAMPLES; ++t)
             samples[t] = (sin (t * 2.0 * M_PI / SAMPLE_RATE * freq) + 1.0) * 128.0;
         snd_pcm_sframes_t frames = snd_pcm_writei (handle, &samples[0], samples.size ());
-        std::clog << frames << std::endl;
         if (frames < 0)
             frames = snd_pcm_recover (handle, frames, 0);
         if (frames < 0)

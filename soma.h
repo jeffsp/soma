@@ -90,13 +90,11 @@ class sliding_time_window
         : duration (duration)
     {
     }
-    bool full (int percent, uint64_t ts) const
+    float fullness (uint64_t ts) const
     {
-        uint64_t start = samples.back ().first;
+        float start = samples.back ().first;
         assert (start <= ts);
-        if (ts - start >= percent * duration / 100)
-            return true;
-        return false;
+        return (ts - start) / duration;
     }
     void update (uint64_t ts)
     {
@@ -160,17 +158,23 @@ class frame_counter
     }
 };
 
+const uint64_t FINGER_COUNTER_WINDOW_DURATION = 200000;
+const float FINGER_COUNTER_WINDOW_FULLNESS = 0.85f;
+const float FINGER_COUNTER_CERTAINTY = 0.8f;
+
 class finger_counter
 {
     private:
     sliding_time_window<uint64_t> w;
-    int current_count;
-    int last_count;
+    unsigned current_count;
+    unsigned last_count;
+    float current_certainty;
     public:
-    finger_counter (uint64_t duration)
-        : w (duration)
-        , current_count (-1)
-        , last_count (-1)
+    finger_counter ()
+        : w (FINGER_COUNTER_WINDOW_DURATION)
+        , current_count (~0)
+        , last_count (~0)
+        , current_certainty (0.0f)
     {
     }
     void update (uint64_t ts, const Leap::PointableList &p)
@@ -180,15 +184,33 @@ class finger_counter
             w.add_sample (ts, 0);
         else
             w.add_sample (ts, p.count ());
-        if (w.full (85, ts))
+        // if it's mostly full
+        if (w.fullness (ts) > FINGER_COUNTER_WINDOW_FULLNESS)
         {
+            // get count and certainty
+            auto s = w.get_samples ();
+            assert (s.size () > 0);
+            unsigned count = mode (s);
+            float total = 0.0f;
+            for (auto i : s)
+                if (i == count)
+                    ++total;
+            float certainty = total / s.size ();
+            // don't change unless certainty is high
+            if (certainty < FINGER_COUNTER_CERTAINTY)
+                return;
             last_count = current_count;
-            current_count = mode (w.get_samples ());
+            current_count = count;
+            current_certainty = certainty;
         }
     }
-    int count () const
+    unsigned count () const
     {
         return current_count;
+    }
+    float certainty () const
+    {
+        return current_certainty;
     }
     bool is_changed () const
     {

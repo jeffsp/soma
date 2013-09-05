@@ -1,52 +1,18 @@
-/// @file soma_pointer.cc
-/// @brief soma pointer leap interface
+/// @file soma_mouse.cc
+/// @brief soma mouse interface
 /// @author Jeff Perry <jeffsp@gmail.com>
 /// @version 1.0
 /// @date 2013-08-30
 
 #include "audio.h"
+#include "mouse.h"
 #include "soma.h"
 #include "options.h"
-#ifdef __linux__
-#include <X11/Xlib.h>
-#include <X11/extensions/XTest.h>
-#elif defined(__APPLE__) && defined(__MACH__)
-#elif defined(_MSC_VER)
-#else
-#error("unknown OS")
-#endif
 
 using namespace std;
 using namespace soma;
 using namespace Leap;
-const string usage = "usage: soma_pointer";
-
-class mouse
-{
-    private:
-    Display *d;
-    public:
-    mouse ()
-        : d (XOpenDisplay (0))
-    {
-        if (!d)
-            throw runtime_error ("Could not open X display");
-    }
-    ~mouse ()
-    {
-        XCloseDisplay (d);
-    }
-    void click (int button, Bool down)
-    {
-        XTestFakeButtonEvent (d, button, down, CurrentTime);
-        XFlush (d);
-    }
-    void move (int x, int y)
-    {
-        XWarpPointer (d, None, None, 0, 0, 0, 0, x, y);
-        XFlush (d);
-    }
-};
+const string usage = "usage: soma_mouse";
 
 class pinch_1d_control
 {
@@ -70,7 +36,7 @@ class pinch_1d_control
             return;
         float x = p[0].tipPosition ().distanceTo (p[1].tipPosition ());
         w.add_sample (ts, x);
-        if (w.full (85, ts))
+        if (w.fullness (ts) > 0.85)
             d = average (w.get_samples ());
     }
     float get_min () const
@@ -90,6 +56,8 @@ class pinch_1d_control
 class index_pointer
 {
     private:
+    enum class mode : int { unknown, pointer, scroll };
+    /*
     sliding_time_window<Vector> w;
     float scale;
     mouse m;
@@ -137,31 +105,25 @@ class index_pointer
                 move (s);
         }
     }
+    */
 };
 
-class soma_pointer : public Listener
+class soma_mouse : public Listener
 {
     private:
     bool done;
     frame_counter frc;
     finger_counter fic;
-    pinch_1d_control p1d;
-    index_pointer ip;
-    bool sound_flag;
-    audio au;
+    //pinch_1d_control p1d;
+    //index_pointer ip;
+    //bool sound_flag;
+    //audio au;
     public:
-    soma_pointer (uint64_t finger_counter_window_duration,
-        uint64_t finger_1d_control_window_duration,
-        uint64_t position_window_duration,
-        bool sound_flag)
+    soma_mouse ()
         : done (false)
-        , fic (finger_counter_window_duration)
-        , p1d (finger_1d_control_window_duration)
-        , ip (position_window_duration)
-        , sound_flag (sound_flag)
     {
     }
-    ~soma_pointer ()
+    ~soma_mouse ()
     {
         clog << frc.fps () << "fps" << endl;
     }
@@ -183,25 +145,19 @@ class soma_pointer : public Listener
     }
     virtual void onFrame(const Controller& c)
     {
+        if (done)
+            return;
         const Frame &f = c.frame ();
         frc.update (f.timestamp ());
         fic.update (f.timestamp (), f.pointables ());
         if (fic.is_changed ())
             clog << " fingers " << fic.count () << endl;
         if (fic.count () == 5)
-        {
-            if (sound_flag && !done)
-                au.play (131, 100);
             done = true;
-        }
-        ip.update (f.timestamp (), f.pointables ());
-        p1d.update (f.timestamp (), f.pointables ());
+        //ip.update (f.timestamp (), f.pointables ());
+        //p1d.update (f.timestamp (), f.pointables ());
     }
 };
-
-const uint64_t FINGER_COUNTER_WINDOW_DURATION = 100000;
-const uint64_t PINCH_1D_CONTROL_WINDOW_DURATION = 200000;
-const uint64_t POSITION_WINDOW_DURATION = 200000;
 
 int main (int argc, char **argv)
 {
@@ -231,19 +187,16 @@ int main (int argc, char **argv)
             else
                 read (opts, config_fn);
         }
-        soma_pointer fp (
-            FINGER_COUNTER_WINDOW_DURATION,
-            PINCH_1D_CONTROL_WINDOW_DURATION,
-            POSITION_WINDOW_DURATION,
-            opts.get_sound ());
-        Controller c (fp);
+
+        soma_mouse sm;
+        Controller c (sm);
 
         // set to receive frames in the background
         c.setPolicyFlags (Controller::POLICY_BACKGROUND_FRAMES);
 
         clog << "press control-C to quit" << endl;
 
-        while (!fp.is_done ())
+        while (!sm.is_done ())
         {
         }
 
