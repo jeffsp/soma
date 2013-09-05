@@ -218,10 +218,9 @@ class finger_counter
     }
 };
 
-class small_hand;
-class big_hand;
+enum class size : int { small, big };
 
-template<typename H>
+template<size H>
 struct hand_traits
 {
     static constexpr float pinch_min = 1.0;
@@ -229,14 +228,14 @@ struct hand_traits
 };
 
 template<>
-struct hand_traits<small_hand>
+struct hand_traits<size::small>
 {
     static constexpr float pinch_min = 1.0;
     static constexpr float pinch_max = 1.0;
 };
 
 template<>
-struct hand_traits<big_hand>
+struct hand_traits<size::big>
 {
     static constexpr float pinch_min = 1.0;
     static constexpr float pinch_max = 1.0;
