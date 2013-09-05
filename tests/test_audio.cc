@@ -4,20 +4,21 @@
 /// @version 1.0
 /// @date 2013-09-03
 
+#include "../audio.h"
+#include "verify.h"
 #include <chrono>
 #include <iostream>
-#include <sstream>
-#include "verify.h"
-#include "../audio.h"
 
 using namespace std;
 using namespace chrono;
 using namespace soma;
-const string usage = "usage: test_audio";
+const string usage = "usage: test_audio [verbose]";
 
 void test_audio (const bool verbose)
 {
     audio a;
+    if (verbose)
+        clog << "playing C4" << endl;
     auto start = high_resolution_clock::now ();
     a.play (262, 300);
     auto end = high_resolution_clock::now ();

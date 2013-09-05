@@ -7,6 +7,8 @@
 #define OPTIONS_H
 
 #include <fstream>
+#include <iostream>
+#include <stdexcept>
 #include <string>
 #include <sys/stat.h>
 
@@ -62,6 +64,16 @@ class options
         , minor_revision (MINOR_REVISION, "minor_revision")
         , sound (true, "sound")
     {
+    }
+    /// @brief option access
+    int get_major_revision () const
+    {
+        return major_revision.value;
+    }
+    /// @brief option access
+    int get_minor_revision () const
+    {
+        return minor_revision.value;
     }
     /// @brief option access
     bool get_sound () const

@@ -8,6 +8,7 @@
 #define VERIFY_H
 
 #include <stdexcept>
+#include <sstream>
 
 namespace soma
 {

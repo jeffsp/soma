@@ -1,16 +1,16 @@
-/// @file test_soma.cc
-/// @brief test soma leap interface
+/// @file test_stats.cc
+/// @brief test stats functions
 /// @author Jeff Perry <jeffsp@gmail.com>
 /// @version 1.0
-/// @date 2013-08-29
+/// @date 2013-09-05
 
-#include <sstream>
-#include "../soma.h"
+#include "../stats.h"
 #include "verify.h"
+#include <iostream>
 
 using namespace std;
 using namespace soma;
-const string usage = "usage: test_soma [verbose]";
+const string usage = "usage: test_stats [verbose]";
 
 void test_stats (const bool verbose)
 {

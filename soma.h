@@ -7,7 +7,6 @@
 #ifndef SOMA_H
 #define SOMA_H
 
-#include "Leap.h"
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>
@@ -22,51 +21,14 @@
 namespace soma
 {
 
-/// @brief version info
-const int MAJOR_REVISION = 0;
-const int MINOR_REVISION = 2;
-
-template<typename T>
-typename T::value_type mode (const T &x)
+struct point
 {
-    std::unordered_map<typename T::value_type,size_t> dist;
-    size_t m_count = 0;
-    typename T::value_type m{};
-    for (auto i : x)
-    {
-        ++dist[i];
-        if (dist[i] > m_count)
-        {
-            m_count = dist[i];
-            m = i;
-        }
-    }
-    return m;
-}
+    float x;
+    float y;
+    float z;
+};
 
-template<typename T>
-double average (const T &x)
-{
-    if (x.empty ())
-        return 0.0;
-    return std::accumulate (x.begin (), x.end (), 0.0) / x.size ();
-}
-
-template<typename T>
-double variance (const T &x)
-{
-    if (x.empty ())
-        return 0.0;
-    double sum2 = 0.0;
-    double sum = 0.0;
-    for (auto i : x)
-    {
-        sum2 += (i * i);
-        sum += i;
-    }
-    // var = E[x^2]-E[x]^2
-    return (sum2 / x.size ()) - (sum / x.size ()) * (sum / x.size ());
-}
+typedef std::vector<point> finger_tips;
 
 template<typename T>
 std::vector<double> distances (const T &x)
@@ -109,6 +71,8 @@ class sliding_time_window
     }
     void add_sample (uint64_t ts, const T &n)
     {
+        // don't add the same sample twice
+        assert (samples.front ().first != ts);
         samples.emplace_front (ts, n);
     }
     const std::vector<T> get_samples () const
@@ -128,41 +92,11 @@ class sliding_time_window
     }
 };
 
-class frame_counter
-{
-    private:
-    uint64_t frames;
-    uint64_t first_ts;
-    uint64_t last_ts;
-    public:
-    frame_counter ()
-        : frames (0)
-        , first_ts (0)
-        , last_ts (0)
-    {
-    }
-    void update (uint64_t ts)
-    {
-        if (frames == 0)
-            first_ts = ts;
-        else
-            last_ts = ts;
-        ++frames;
-    }
-    int fps () const
-    {
-        int secs = (last_ts - first_ts) / 1000000;
-        if (secs != 0)
-            return frames / secs;
-        return -1;
-    }
-};
-
 const uint64_t FINGER_COUNTER_WINDOW_DURATION = 200000;
 const float FINGER_COUNTER_WINDOW_FULLNESS = 0.85f;
 const float FINGER_COUNTER_CERTAINTY = 0.8f;
 
-class finger_counter
+class finger_tracker
 {
     private:
     sliding_time_window<uint64_t> w;
@@ -170,13 +104,14 @@ class finger_counter
     unsigned last_count;
     float current_certainty;
     public:
-    finger_counter ()
+    finger_tracker ()
         : w (FINGER_COUNTER_WINDOW_DURATION)
         , current_count (~0)
         , last_count (~0)
         , current_certainty (0.0f)
     {
     }
+        /*
     void update (uint64_t ts, const Leap::PointableList &p)
     {
         w.update (ts);
@@ -204,6 +139,7 @@ class finger_counter
             current_certainty = certainty;
         }
     }
+        */
     unsigned count () const
     {
         return current_count;
@@ -216,29 +152,6 @@ class finger_counter
     {
         return current_count != last_count;
     }
-};
-
-enum class size : int { small, big };
-
-template<size H>
-struct hand_traits
-{
-    static constexpr float pinch_min = 1.0;
-    static constexpr float pinch_max = 1.0;
-};
-
-template<>
-struct hand_traits<size::small>
-{
-    static constexpr float pinch_min = 1.0;
-    static constexpr float pinch_max = 1.0;
-};
-
-template<>
-struct hand_traits<size::big>
-{
-    static constexpr float pinch_min = 1.0;
-    static constexpr float pinch_max = 1.0;
 };
 
 }

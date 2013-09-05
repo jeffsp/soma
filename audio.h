@@ -57,23 +57,6 @@ class audio
     }
 };
 
-void play (int freq = 262, int millisecs = 1000)
-{
-    const int sr = 8000;
-    const char *cmd = "aplay";
-    const char *flags = "w";
-    FILE *fp = popen (cmd, flags);
-    if (!fp)
-        throw std::runtime_error ("aplay failed");
-    for (int t = 0; t < sr * millisecs / 1000; ++t)
-    {
-        uint8_t s = (sin (t * 2.0 * M_PI / sr * freq) + 1.0) * 128.0;
-        fputc (s, fp);
-    }
-    pclose (fp);
-}
-
-
 }
 
 #endif
