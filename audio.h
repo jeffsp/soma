@@ -92,9 +92,9 @@ class audio
         for (size_t t = 0; t < samples; ++t)
             s[t] = (sin (t * 2.0 * M_PI / sr * freq) + 1.0) * 128.0;
         size_t n = fwrite (&s[0], samples, 1, fp);
-        fputc (EOF, fp);
         if (n != 1)
             throw std::runtime_error ("could not write to audio device");
+        fflush (fp);
     }
 };
 
