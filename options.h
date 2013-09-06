@@ -36,11 +36,9 @@ struct option
     template<typename S>
     void parse (S &s)
     {
-        //std::clog << "parsing " << name << " option" << std::endl;
         std::string tmp_name;
         T tmp_value;
         s >> tmp_name >> tmp_value;
-        //std::clog << tmp_name << ' ' << tmp_value << std::endl;
         if (name != tmp_name)
             throw std::runtime_error ("warning: didn't get expected option");
         value = tmp_value;
@@ -57,12 +55,15 @@ class options
     option<int> minor_revision;
     /// @brief turn sound on/off
     option<bool> sound;
+    /// @brief change the speed of the mouse
+    option<float> mouse_speed;
     public:
     /// @brief constructor
     options ()
         : major_revision (MAJOR_REVISION, "major_revision")
         , minor_revision (MINOR_REVISION, "minor_revision")
-        , sound (true, "sound")
+        , sound (false, "sound")
+        , mouse_speed (5.0f, "mouse_speed")
     {
     }
     /// @brief option access
@@ -86,6 +87,18 @@ class options
         if (f == sound.value)
             return;
         sound.value = f;
+    }
+    /// @brief option access
+    float get_mouse_speed () const
+    {
+        return mouse_speed.value;
+    }
+    /// @brief option access
+    void set_mouse_speed (float s)
+    {
+        if (s == mouse_speed.value)
+            return;
+        mouse_speed.value = s;
     }
     /// @brief i/o helper
     friend std::ostream& operator<< (std::ostream &s, const options &opts)
@@ -127,7 +140,6 @@ class options
 /// @param fn filename
 void read (options &opts, const std::string &fn)
 {
-    std::clog << "reading configuration file " << fn << std::endl;
     std::ifstream ifs (fn.c_str ());
     if (!ifs)
         throw std::runtime_error ("could not open config file for reading");
@@ -140,7 +152,6 @@ void read (options &opts, const std::string &fn)
 /// @param fn filename
 void write (const options &opts, const std::string &fn)
 {
-    std::clog << "writing configuration file " << fn << std::endl;
     std::ofstream ofs (fn.c_str ());
     if (!ofs)
         throw std::runtime_error ("could not open config file for writing");
@@ -162,10 +173,7 @@ std::string get_config_dir ()
     config_dir += "/soma";
     struct stat sb;
     if (stat (config_dir.c_str (), &sb) == -1)
-    {
-        std::clog << "creating config file directory " << config_dir << std::endl;
         mkdir (config_dir.c_str (), 0700);
-    }
     if (stat (config_dir.c_str (), &sb) == -1)
         throw std::runtime_error ("could not create config file directory");
     return config_dir;
