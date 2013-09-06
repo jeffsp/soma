@@ -39,10 +39,10 @@ int main (int argc, char **argv)
                 read (opts, config_fn);
         }
 
-        soma_mouse sm;
+        soma_mouse sm (opts);
         Leap::Controller c (sm);
 
-        // set to receive frames in the background
+        // receive frames even when you don't have focus
         c.setPolicyFlags (Leap::Controller::POLICY_BACKGROUND_FRAMES);
 
         clog << "press control-C to quit" << endl;

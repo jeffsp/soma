@@ -43,7 +43,7 @@ class audio
         snd_pcm_close (handle);
     }
     /// @see http://en.wikipedia.org/wiki/Piano_key_frequencies
-    void play (int freq = 262, int millisecs = 1000)
+    void play (int freq = 262, int millisecs = 1000) const
     {
         const int SAMPLES = SAMPLE_RATE * millisecs / 1000;
         std::vector<uint8_t> samples (SAMPLES);
