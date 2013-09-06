@@ -7,6 +7,7 @@
 #include "../mouse.h"
 #include "verify.h"
 #include <iostream>
+#include <unistd.h>
 
 using namespace std;
 using namespace soma;
