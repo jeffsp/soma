@@ -3,8 +3,6 @@ all:
 	waf
 
 run: all
-	./build/debug/soma
-	sleep 1
 	./build/debug/soma_mouse
 
 check: all
