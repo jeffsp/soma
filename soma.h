@@ -52,7 +52,7 @@ bool operator!= (const point &a, const point &b)
 /// @brief i/o helper
 std::ostream& operator<< (std::ostream &s, const point &p)
 {
-    s << '(' << p.x << ',' << p.y << ',' << p.z << ')';
+    s << p.x << ' ' << p.y << ' ' << p.z;
     return s;
 }
 
