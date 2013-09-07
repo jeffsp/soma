@@ -33,6 +33,10 @@ class frame_counter
             last_ts = ts;
         ++frames;
     }
+    uint64_t get_frames () const
+    {
+        return frames;
+    }
     float fps () const
     {
         float secs = static_cast<float> (last_ts - first_ts) / 1000000;
