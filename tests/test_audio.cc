@@ -20,7 +20,7 @@ void test_audio (const bool verbose)
     if (verbose)
         clog << "playing C4" << endl;
     auto start = high_resolution_clock::now ();
-    a.play (262, 300);
+    a.play (262, 200);
     auto end = high_resolution_clock::now ();
     duration<double> elapsed = end-start;
     if (verbose)

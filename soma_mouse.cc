@@ -25,6 +25,7 @@ int main (int argc, char **argv)
 
         // if the config file does not exist, write one
         {
+            std::clog << "writing default configuration file " << config_fn << std::endl;
             ifstream ifs (config_fn.c_str ());
             if (!ifs)
                 write (opts, config_fn);
@@ -32,6 +33,7 @@ int main (int argc, char **argv)
 
         // read in the config file
         {
+            std::clog << "reading configuration file " << config_fn << std::endl;
             ifstream ifs (config_fn.c_str ());
             if (!ifs) // if it's not there, notify the user
                 clog << "warning: could not read configuration options" << endl;

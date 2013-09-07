@@ -17,6 +17,7 @@ const int MINOR_REVISION = 1;
 #include "soma.h"
 #include "stats.h"
 #include "utility.h"
+#include <chrono>
 
 namespace soma
 {
@@ -80,6 +81,46 @@ class points_tracker
     }
 };
 
+class mouse_cursor
+{
+    private:
+    mouse m;
+    point last_point;
+    bool last_point_valid;
+    float speed;
+    public:
+    mouse_cursor (float speed)
+        : last_point_valid (false)
+        , speed (speed)
+    {
+    }
+    void set_speed (float s)
+    {
+        if (s >= 1.0)
+            speed = s;
+    }
+    void clear ()
+    {
+        last_point_valid = false;
+    }
+    void update (const points &p)
+    {
+        assert (!p.empty ());
+        if (last_point_valid)
+        {
+            float x = last_point.x - p[0].x;
+            float y = last_point.y - p[0].y;
+            m.move (-x * speed, y * speed);
+        }
+        last_point = p[0];
+        last_point_valid = true;
+    }
+    void center ()
+    {
+        m.center ();
+    }
+};
+
 enum class input_mode { zero, point, click, scroll, center };
 
 std::string to_string (const input_mode m)
@@ -130,7 +171,7 @@ class mode_switcher
 
 void beep (const audio &au, const input_mode &m)
 {
-    const int D = 200; // millisecs
+    const int D = 300; // millisecs
     switch (m)
     {
         default: assert (0); break;
@@ -158,10 +199,12 @@ class soma_mouse : public Leap::Listener
     points_tracker pt;
     mode_switcher ms;
     audio au;
+    mouse_cursor mc;
     public:
     soma_mouse (const options &opts)
         : done (false)
         , opts (opts)
+        , mc (opts.get_mouse_speed ())
     {
     }
     ~soma_mouse ()
@@ -202,21 +245,29 @@ class soma_mouse : public Leap::Listener
         pt.update (fic.get_count (), p);
         static points last_points;
         const points &this_points = pt.get_points ();
+        /*
         if (this_points != last_points)
         {
             last_points = this_points;
             std::clog << "points " << this_points << std::endl;
         }
+        */
         ms.update (this_points);
         static input_mode last_mode = input_mode::zero;
         input_mode this_mode = ms.get_mode ();
         if (this_mode != last_mode)
         {
-            last_mode = this_mode;
+            if (this_mode == input_mode::center)
+                mc.center ();
             std::clog << "mode " << to_string (this_mode) << std::endl;
             if (opts.get_sound ())
                 beep (au, this_mode);
+            last_mode = this_mode;
         }
+        if (this_mode == input_mode::point)
+            mc.update (this_points);
+        else
+            mc.clear ();
     }
 };
 

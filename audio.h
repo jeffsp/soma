@@ -9,13 +9,16 @@
 
 #include <alsa/asoundlib.h>
 #include <cmath>
+#include <iostream>
 #include <stdexcept>
 #include <vector>
 
 namespace soma
 {
 
-class audio
+/* ALSA is overly complicated for what we're trying to do...
+ *
+class alsa_audio
 {
     private:
     snd_pcm_t *handle;
@@ -54,6 +57,44 @@ class audio
             frames = snd_pcm_recover (handle, frames, 0);
         if (frames < 0)
             throw std::runtime_error (snd_strerror (frames));
+    }
+};
+*/
+
+class audio
+{
+    private:
+    const int sr;
+    const std::string cmd;
+    const std::string flags;
+    FILE *fp;
+    public:
+    audio ()
+        : sr (8000)
+        , cmd ("aplay --quiet --format=U8 --channels=1 --rate=8000")
+        , flags ("w")
+        , fp (popen (cmd.c_str (), flags.c_str ()))
+    {
+        if (!fp)
+            throw std::runtime_error ("cannot open pipe to 'aplay' process");
+        sleep (1);
+    }
+    ~audio ()
+    {
+        pclose (fp);
+        sleep (1);
+    }
+    /// @see http://en.wikipedia.org/wiki/Piano_key_frequencies
+    void play (int freq = 262, int millisecs = 1000) const
+    {
+        const size_t samples = sr * millisecs / 1000;
+        std::vector<unsigned char> s (samples);
+        for (size_t t = 0; t < samples; ++t)
+            s[t] = (sin (t * 2.0 * M_PI / sr * freq) + 1.0) * 128.0;
+        size_t n = fwrite (&s[0], samples, 1, fp);
+        if (n != 1)
+            throw std::runtime_error ("could not write to audio device");
+        fflush (fp);
     }
 };
 
