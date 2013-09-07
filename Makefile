@@ -8,7 +8,5 @@ run: all
 check: all
 	$(MAKE) -C tests check
 
-play: all
-	./build/debug/play
-	./build/debug/play
-	./build/debug/play
+dump: all
+	./build/debug/dump_samples > samples.txt
