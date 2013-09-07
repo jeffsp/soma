@@ -5,7 +5,6 @@
 /// @date 2013-09-06
 
 #include "soma.h"
-#include "utility.h"
 
 using namespace std;
 using namespace soma;
