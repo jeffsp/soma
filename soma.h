@@ -77,19 +77,59 @@ std::vector<double> distances (const T &x)
     return d;
 }
 
+class frame_counter
+{
+    private:
+    uint64_t frames;
+    uint64_t first_ts;
+    uint64_t last_ts;
+    public:
+    frame_counter ()
+        : frames (0)
+        , first_ts (0)
+        , last_ts (0)
+    {
+    }
+    void update (uint64_t ts)
+    {
+        if (frames == 0)
+            first_ts = ts;
+        else
+            last_ts = ts;
+        ++frames;
+    }
+    uint64_t get_frames () const
+    {
+        return frames;
+    }
+    float fps () const
+    {
+        float secs = static_cast<float> (last_ts - first_ts) / 1000000;
+        // don't count the last frame
+        if (frames != 0 && secs != 0.0f)
+            return (frames - 1) / secs;
+        return -1;
+    }
+};
+
 template<typename T>
 class sliding_time_window
 {
     private:
-    uint64_t duration;
-    std::deque<std::pair<uint64_t,T>> samples;
+    const uint64_t duration;
+    std::deque<uint64_t> time_stamps;
+    std::deque<T> samples;
     void update (uint64_t ts)
     {
-        while (!samples.empty ())
+        while (!time_stamps.empty ())
         {
-            assert (ts >= samples.back ().first);
-            if (ts - samples.back ().first > duration)
+            assert (samples.size () == time_stamps.size ());
+            assert (ts >= time_stamps.back ());
+            if (ts - time_stamps.back () > duration)
+            {
+                time_stamps.pop_back ();
                 samples.pop_back ();
+            }
             else
                 break;
         }
@@ -101,24 +141,25 @@ class sliding_time_window
     }
     float fullness (uint64_t ts) const
     {
-        float start = samples.back ().first;
+        if (time_stamps.empty ())
+            return 0.0f;
+        float start = time_stamps.back ();
         assert (start <= ts);
+        assert (duration != 0);
         return (ts - start) / duration;
     }
     void add_sample (uint64_t ts, const T &n)
     {
+        // remove samples with old timestamps
         update (ts);
         // don't add the same sample twice
-        assert (samples.front ().first != ts);
-        samples.emplace_front (ts, n);
+        assert (time_stamps.empty () || time_stamps.front () != ts);
+        time_stamps.emplace_front (ts);
+        samples.emplace_front (n);
     }
-    const std::vector<T> get_samples () const
+    const std::deque<T> get_samples () const
     {
-        std::vector<T> s (samples.size ());
-        size_t index = 0;
-        for (auto i : samples)
-            s[index++] = i.second;
-        return s;
+        return samples;
     }
     void dump (std::ostream &s) const
     {
