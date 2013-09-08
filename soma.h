@@ -128,6 +128,11 @@ class sliding_time_window
         : duration (duration)
     {
     }
+    void clear ()
+    {
+        samples.clear ();
+        time_stamps.clear ();
+    }
     float fullness (uint64_t ts) const
     {
         if (time_stamps.empty ())
