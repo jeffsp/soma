@@ -61,8 +61,6 @@ class mouse
             throw std::runtime_error ("could not determine screen of display");
         int w = WidthOfScreen (s);
         int h = HeightOfScreen (s);
-        std::clog << "screen dimensions " << w << "X" << h << std::endl;
-        std::clog << "moving to " << w/2 << "," << h/2 << std::endl;
         if (w != 0 && h != 0)
             set (w / 2, h / 2);
     }
