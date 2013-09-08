@@ -8,18 +8,18 @@
 
 using namespace std;
 using namespace soma;
-const string usage = "usage: dump_samples";
+const string usage = "usage: dump_samples <#>";
 
 class soma_dumper : public Leap::Listener
 {
     private:
+    const unsigned n;
     bool done;
-    const size_t max_points;
     frame_counter frc;
     public:
-    soma_dumper ()
-        : done (false)
-        , max_points (5)
+    soma_dumper (unsigned n)
+        : n (n)
+        , done (false)
     {
     }
     bool is_done () const
@@ -37,17 +37,10 @@ class soma_dumper : public Leap::Listener
         {
             done = true;
         }
-        else
+        else if (p.size () == n)
         {
-            cout << p.size ();
-            for (size_t i = 0; i < max_points; ++i)
-            {
-
-                if (i < p.size ())
-                    cout << ' ' << p[i];
-                else
-                    cout << ' ' << point ();
-            }
+            for (size_t i = 0; i < p.size (); ++i)
+                cout << ' ' << p[i];
             cout << endl;
             if (!(frc.get_frames () % 100))
                 std::clog << frc.fps () << "fps" << std::endl;
@@ -55,14 +48,18 @@ class soma_dumper : public Leap::Listener
     }
 };
 
-int main (int argc, char **)
+int main (int argc, char **argv)
 {
     try
     {
-        if (argc != 1)
+        if (argc != 2)
             throw runtime_error (usage);
 
-        soma_dumper sd;
+        int n = atoi (argv[1]);
+
+        clog << "n " << n << endl;
+
+        soma_dumper sd (n);
         Leap::Controller c (sd);
 
         clog << "6 fingers = quit" << endl;
