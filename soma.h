@@ -66,17 +66,6 @@ std::ostream& operator<< (std::ostream &s, const points &p)
     return s;
 }
 
-template<typename T>
-std::vector<double> distances (const T &x)
-{
-    if (x.size () < 2)
-        return std::vector<double> ();
-    std::vector<double> d (x.size () - 1);
-    for (size_t i = 0; i < d.size (); ++i)
-        d[i] = x[i].distanceTo (x[i + 1]);
-    return d;
-}
-
 class frame_counter
 {
     private:
