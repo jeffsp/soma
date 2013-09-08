@@ -80,46 +80,6 @@ class points_tracker
     }
 };
 
-class mouse_cursor
-{
-    private:
-    mouse m;
-    point last_point;
-    bool last_point_valid;
-    float speed;
-    public:
-    mouse_cursor (float speed)
-        : last_point_valid (false)
-        , speed (speed)
-    {
-    }
-    void set_speed (float s)
-    {
-        if (s >= 1.0)
-            speed = s;
-    }
-    void clear ()
-    {
-        last_point_valid = false;
-    }
-    void update (const points &p)
-    {
-        assert (!p.empty ());
-        if (last_point_valid)
-        {
-            float x = last_point.x - p[0].x;
-            float y = last_point.y - p[0].y;
-            m.move (-x * speed, y * speed);
-        }
-        last_point = p[0];
-        last_point_valid = true;
-    }
-    void center ()
-    {
-        m.center ();
-    }
-};
-
 enum class input_mode { zero, point, click, scroll, center };
 
 std::string to_string (const input_mode m)
@@ -168,6 +128,83 @@ class mode_switcher
     }
 };
 
+class mouse_pointer
+{
+    private:
+    mouse &m;
+    point last_point;
+    bool last_point_valid;
+    float speed;
+    public:
+    mouse_pointer (mouse &m, float speed)
+        : m (m)
+        , last_point_valid (false)
+        , speed (speed)
+    {
+    }
+    void set_speed (float s)
+    {
+        if (s >= 1.0)
+            speed = s;
+    }
+    void clear ()
+    {
+        last_point_valid = false;
+    }
+    void update (const points &p)
+    {
+        assert (!p.empty ());
+        if (last_point_valid)
+        {
+            float x = last_point.x - p[0].x;
+            float y = last_point.y - p[0].y;
+            m.move (-x * speed, y * speed);
+        }
+        last_point = p[0];
+        last_point_valid = true;
+    }
+    void center ()
+    {
+        m.center ();
+    }
+};
+
+class mouse_clicker
+{
+    private:
+    mouse &m;
+    public:
+    mouse_clicker (mouse &m)
+        : m (m)
+    {
+    }
+    void clear ()
+    {
+    }
+    void update (const points &p)
+    {
+        assert (!p.empty ());
+    }
+};
+
+class mouse_scroller
+{
+    private:
+    mouse &m;
+    public:
+    mouse_scroller (mouse &m)
+        : m (m)
+    {
+    }
+    void clear ()
+    {
+    }
+    void update (const points &p)
+    {
+        assert (!p.empty ());
+    }
+};
+
 void beep (const audio &au, const input_mode &m)
 {
     const int D = 300; // millisecs
@@ -198,12 +235,17 @@ class soma_mouse : public Leap::Listener
     points_tracker pt;
     mode_switcher ms;
     audio au;
-    mouse_cursor mc;
+    mouse m;
+    mouse_pointer mop;
+    mouse_clicker moc;
+    mouse_scroller mos;
     public:
     soma_mouse (const options &opts)
         : done (false)
         , opts (opts)
-        , mc (opts.get_mouse_speed ())
+        , mop (m, opts.get_mouse_speed ())
+        , moc (m)
+        , mos (m)
     {
     }
     ~soma_mouse ()
@@ -234,39 +276,40 @@ class soma_mouse : public Leap::Listener
         frc.update (f.timestamp ());
         const points &p = get_points (f.pointables ());
         fic.update (f.timestamp (), p.size ());
-        static unsigned last_count = ~0;
-        unsigned this_count = fic.get_count ();
-        if (this_count != last_count)
-        {
-            last_count = this_count;
-            std::clog << "count " << this_count << std::endl;
-        }
         pt.update (fic.get_count (), p);
-        static points last_points;
-        const points &this_points = pt.get_points ();
-        /*
-        if (this_points != last_points)
+        ms.update (pt.get_points ());
+        switch (ms.get_mode ())
         {
-            last_points = this_points;
-            std::clog << "points " << this_points << std::endl;
+            default:
+                assert (0);
+            break;
+            case input_mode::zero:
+            mop.clear ();
+            moc.clear ();
+            mos.clear ();
+            break;
+            case input_mode::point:
+            mop.update (pt.get_points ());
+            moc.clear ();
+            mos.clear ();
+            break;
+            case input_mode::click:
+            mop.clear ();
+            moc.update (pt.get_points ());
+            mos.clear ();
+            break;
+            case input_mode::scroll:
+            mop.clear ();
+            moc.clear ();
+            mos.update (pt.get_points ());
+            break;
+            case input_mode::center:
+            mop.clear ();
+            mop.center ();
+            moc.clear ();
+            mos.clear ();
+            break;
         }
-        */
-        ms.update (this_points);
-        static input_mode last_mode = input_mode::zero;
-        input_mode this_mode = ms.get_mode ();
-        if (this_mode != last_mode)
-        {
-            if (this_mode == input_mode::center)
-                mc.center ();
-            std::clog << "mode " << to_string (this_mode) << std::endl;
-            if (opts.get_sound ())
-                beep (au, this_mode);
-            last_mode = this_mode;
-        }
-        if (this_mode == input_mode::point)
-            mc.update (this_points);
-        else
-            mc.clear ();
     }
 };
 
