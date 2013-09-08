@@ -5,6 +5,7 @@
 /// @date 2013-09-06
 
 #include "soma.h"
+#include "stats.h"
 
 using namespace std;
 using namespace soma;
@@ -13,7 +14,26 @@ const string usage = "usage: measure_samples";
 template<typename T>
 void print_stats (const T &s)
 {
-    clog << s.size () << endl;
+    vector<float> dx;
+    vector<float> dy;
+    vector<float> dz;
+    for (size_t i = 0; i + 1 < s.size (); ++i)
+    {
+        if (s[i].size () == 1 && s[i + 1].size () == 1)
+        {
+            dx.push_back (s[i][0].x - s[i + 1][0].x);
+            dy.push_back (s[i][0].y - s[i + 1][0].y);
+            dz.push_back (s[i][0].z - s[i + 1][0].z);
+        }
+    }
+    clog
+        << ' ' << average (dx)
+        << ' ' << average (dy)
+        << ' ' << average (dz)
+        << ' ' << variance (dx)
+        << ' ' << variance (dy)
+        << ' ' << variance (dz)
+        << endl;
 }
 
 class soma_measure : public Leap::Listener
