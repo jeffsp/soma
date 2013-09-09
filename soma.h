@@ -106,17 +106,17 @@ class sliding_time_window
 {
     private:
     const uint64_t duration;
-    std::deque<uint64_t> time_stamps;
+    std::deque<uint64_t> timestamps;
     std::deque<T> samples;
     void update (uint64_t ts)
     {
-        while (!time_stamps.empty ())
+        while (!timestamps.empty ())
         {
-            assert (samples.size () == time_stamps.size ());
-            assert (ts >= time_stamps.back ());
-            if (ts - time_stamps.back () > duration)
+            assert (samples.size () == timestamps.size ());
+            assert (ts >= timestamps.back ());
+            if (ts - timestamps.back () > duration)
             {
-                time_stamps.pop_back ();
+                timestamps.pop_back ();
                 samples.pop_back ();
             }
             else
@@ -131,13 +131,13 @@ class sliding_time_window
     void clear ()
     {
         samples.clear ();
-        time_stamps.clear ();
+        timestamps.clear ();
     }
     float fullness (uint64_t ts) const
     {
-        if (time_stamps.empty ())
+        if (timestamps.empty ())
             return 0.0f;
-        float start = time_stamps.back ();
+        float start = timestamps.back ();
         assert (start <= ts);
         assert (duration != 0);
         return (ts - start) / duration;
@@ -147,13 +147,17 @@ class sliding_time_window
         // remove samples with old timestamps
         update (ts);
         // don't add the same sample twice
-        assert (time_stamps.empty () || time_stamps.front () != ts);
-        time_stamps.emplace_front (ts);
+        assert (timestamps.empty () || timestamps.front () != ts);
+        timestamps.emplace_front (ts);
         samples.emplace_front (n);
     }
     const std::deque<T> get_samples () const
     {
         return samples;
+    }
+    const std::deque<uint64_t> get_timestamps () const
+    {
+        return timestamps;
     }
     void dump (std::ostream &s) const
     {
