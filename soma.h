@@ -22,14 +22,15 @@
 namespace soma
 {
 
-struct point
+// Euclidean, or 3D, vector
+struct vector3
 {
-    point ()
+    vector3 ()
         : x (0.0f)
         , y (0.0f)
         , z (0.0f)
     { }
-    point (const Leap::Vector &a)
+    vector3 (const Leap::Vector &a)
         : x (a.x)
         , y (a.y)
         , z (a.z)
@@ -39,27 +40,27 @@ struct point
     float z;
 };
 
-bool operator== (const point &a, const point &b)
+bool operator== (const vector3 &a, const vector3 &b)
 {
     return a.x == b.x && a.y == b.y && a.z == b.z;
 }
 
-bool operator!= (const point &a, const point &b)
+bool operator!= (const vector3 &a, const vector3 &b)
 {
     return !(a == b);
 }
 
 /// @brief i/o helper
-std::ostream& operator<< (std::ostream &s, const point &p)
+std::ostream& operator<< (std::ostream &s, const vector3 &p)
 {
     s << p.x << ' ' << p.y << ' ' << p.z;
     return s;
 }
 
-typedef std::vector<point> points;
+typedef std::vector<vector3> vector3s;
 
 /// @brief i/o helper
-std::ostream& operator<< (std::ostream &s, const points &p)
+std::ostream& operator<< (std::ostream &s, const vector3s &p)
 {
     for (auto i : p)
         s << ' ' << i;
@@ -168,11 +169,27 @@ class sliding_time_window
     }
 };
 
-points get_points (const Leap::PointableList &l)
+vector3s get_positions (const Leap::PointableList &l)
 {
-    points p (l.count ());
+    vector3s p (l.count ());
     for (size_t i = 0; i < p.size (); ++i)
         p[i] = l[i].tipPosition ();
+    return p;
+}
+
+vector3s get_velocities (const Leap::PointableList &l)
+{
+    vector3s p (l.count ());
+    for (size_t i = 0; i < p.size (); ++i)
+        p[i] = l[i].tipVelocity ();
+    return p;
+}
+
+vector3s get_directions (const Leap::PointableList &l)
+{
+    vector3s p (l.count ());
+    for (size_t i = 0; i < p.size (); ++i)
+        p[i] = l[i].direction ();
     return p;
 }
 
