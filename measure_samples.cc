@@ -21,7 +21,7 @@ float distance (const T &a, const T &b)
 }
 
 template<typename W>
-void print_stats (const W &w)
+void movement_stats (const W &w)
 {
     auto s = w.get_samples ();
     vector<float> dx;
@@ -58,15 +58,53 @@ void print_stats (const W &w)
         << endl;
 }
 
+template<typename W>
+void other_stats (const W &w)
+{
+    auto s = w.get_samples ();
+    vector<float> x;
+    vector<float> y;
+    vector<float> z;
+    vector<float> a;
+    for (size_t i = 0; i < s.size (); ++i)
+    {
+        if (s[i].size () == 1)
+        {
+            float fx = s[i][0].x;
+            float fy = s[i][0].y;
+            float fz = s[i][0].z;
+            x.push_back (fx);
+            y.push_back (fy);
+            z.push_back (fz);
+            a.push_back (sqrt (fx*fx + fy*fy + fz*fz));
+        }
+    }
+    clog
+        << "average, variance "
+        << ' ' << average (x)
+        << ' ' << average (y)
+        << ' ' << average (z)
+        << ' ' << average (a)
+        << ' ' << variance (x)
+        << ' ' << variance (y)
+        << ' ' << variance (z)
+        << ' ' << variance (a)
+        << endl;
+}
+
 class soma_measure : public Leap::Listener
 {
     private:
     bool done;
-    sliding_time_window<points> w;
+    sliding_time_window<vector3s> pw;
+    sliding_time_window<vector3s> vw;
+    sliding_time_window<vector3s> dw;
     public:
     soma_measure ()
         : done (false)
-        , w (3000000)
+        , pw (3000000)
+        , vw (3000000)
+        , dw (3000000)
     {
     }
     bool is_done () const
@@ -78,18 +116,35 @@ class soma_measure : public Leap::Listener
         if (done)
             return;
         const Leap::Frame &f = c.frame ();
-        const points &p = get_points (f.pointables ());
+        const vector3s &p = get_positions (f.pointables ());
+        const vector3s &v = get_velocities (f.pointables ());
+        const vector3s &d = get_directions (f.pointables ());
         if (p.size () == 6)
         {
             done = true;
         }
         else
         {
-            w.add_sample (f.timestamp (), p);
-            if (w.fullness (f.timestamp ()) > 0.9)
+            pw.add_sample (f.timestamp (), p);
+            vw.add_sample (f.timestamp (), v);
+            dw.add_sample (f.timestamp (), d);
+            if (pw.fullness (f.timestamp ()) > 0.9)
             {
-                print_stats (w);
-                w.clear ();
+                clog << "movement ";
+                movement_stats (pw);
+                pw.clear ();
+            }
+            if (vw.fullness (f.timestamp ()) > 0.9)
+            {
+                clog << "velocity ";
+                other_stats (vw);
+                vw.clear ();
+            }
+            if (dw.fullness (f.timestamp ()) > 0.9)
+            {
+                clog << "direction ";
+                other_stats (dw);
+                dw.clear ();
             }
         }
     }
