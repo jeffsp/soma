@@ -32,7 +32,7 @@ class soma_dumper : public Leap::Listener
             return;
         const Leap::Frame &f = c.frame ();
         frc.update (f.timestamp ());
-        const points &p = get_points (f.pointables ());
+        const vector3s &p = get_positions (f.pointables ());
         if (p.size () == 6)
         {
             done = true;
