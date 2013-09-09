@@ -63,20 +63,20 @@ class finger_counter
     }
 };
 
-class points_tracker
+class position_tracker
 {
     private:
-    points current_points;
+    vector3s current_positions;
     public:
-    void update (const unsigned count, const points &p)
+    void update (const unsigned count, const vector3s &p)
     {
-        // simply filter out points samples that don't have the correct current size
+        // simply filter out samples that don't have the correct current size
         if (count == p.size ())
-            current_points = p;
+            current_positions = p;
     }
-    const points &get_points () const
+    const vector3s &get_positions () const
     {
-        return current_points;
+        return current_positions;
     }
 };
 
@@ -104,7 +104,7 @@ class mode_switcher
         : current (input_mode::zero)
     {
     }
-    void update (const points &p)
+    void update (const vector3s &p)
     {
         switch (p.size ())
         {
@@ -132,7 +132,7 @@ class mouse_pointer
 {
     private:
     mouse &m;
-    point last_point;
+    vector3 last_point;
     bool last_point_valid;
     float speed;
     public:
@@ -151,7 +151,7 @@ class mouse_pointer
     {
         last_point_valid = false;
     }
-    void update (const points &p)
+    void update (const vector3s &p)
     {
         assert (!p.empty ());
         if (last_point_valid)
@@ -181,7 +181,7 @@ class mouse_clicker
     void clear ()
     {
     }
-    void update (const points &p)
+    void update (const vector3s &p)
     {
         assert (!p.empty ());
     }
@@ -199,7 +199,7 @@ class mouse_scroller
     void clear ()
     {
     }
-    void update (const points &p)
+    void update (const vector3s &p)
     {
         assert (!p.empty ());
     }
@@ -232,7 +232,7 @@ class soma_mouse : public Leap::Listener
     const options &opts;
     frame_counter frc;
     finger_counter fic;
-    points_tracker pt;
+    position_tracker pt;
     mode_switcher ms;
     audio au;
     mouse m;
@@ -274,10 +274,10 @@ class soma_mouse : public Leap::Listener
             return;
         const Leap::Frame &f = c.frame ();
         frc.update (f.timestamp ());
-        const points &p = get_points (f.pointables ());
+        const vector3s &p = get_positions (f.pointables ());
         fic.update (f.timestamp (), p.size ());
         pt.update (fic.get_count (), p);
-        ms.update (pt.get_points ());
+        ms.update (pt.get_positions ());
         switch (ms.get_mode ())
         {
             default:
@@ -289,19 +289,19 @@ class soma_mouse : public Leap::Listener
             mos.clear ();
             break;
             case input_mode::point:
-            mop.update (pt.get_points ());
+            mop.update (pt.get_positions ());
             moc.clear ();
             mos.clear ();
             break;
             case input_mode::click:
             mop.clear ();
-            moc.update (pt.get_points ());
+            moc.update (pt.get_positions ());
             mos.clear ();
             break;
             case input_mode::scroll:
             mop.clear ();
             moc.clear ();
-            mos.update (pt.get_points ());
+            mos.update (pt.get_positions ());
             break;
             case input_mode::center:
             mop.clear ();
