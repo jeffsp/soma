@@ -66,15 +66,15 @@ class finger_counter
 class position_tracker
 {
     private:
-    vector3s current_positions;
+    vec3s current_positions;
     public:
-    void update (const unsigned count, const vector3s &p)
+    void update (const unsigned count, const vec3s &p)
     {
         // simply filter out samples that don't have the correct current size
         if (count == p.size ())
             current_positions = p;
     }
-    const vector3s &get_positions () const
+    const vec3s &get_positions () const
     {
         return current_positions;
     }
@@ -104,7 +104,7 @@ class mode_switcher
         : current (input_mode::zero)
     {
     }
-    void update (const vector3s &p)
+    void update (const vec3s &p)
     {
         switch (p.size ())
         {
@@ -132,7 +132,7 @@ class mouse_pointer
 {
     private:
     mouse &m;
-    vector3 last_point;
+    vec3 last_point;
     bool last_point_valid;
     float speed;
     public:
@@ -151,7 +151,7 @@ class mouse_pointer
     {
         last_point_valid = false;
     }
-    void update (const vector3s &p)
+    void update (const vec3s &p)
     {
         assert (!p.empty ());
         if (last_point_valid)
@@ -181,7 +181,7 @@ class mouse_clicker
     void clear ()
     {
     }
-    void update (const vector3s &p)
+    void update (const vec3s &p)
     {
         assert (!p.empty ());
     }
@@ -199,7 +199,7 @@ class mouse_scroller
     void clear ()
     {
     }
-    void update (const vector3s &p)
+    void update (const vec3s &p)
     {
         assert (!p.empty ());
     }
@@ -274,7 +274,7 @@ class soma_mouse : public Leap::Listener
             return;
         const Leap::Frame &f = c.frame ();
         frc.update (f.timestamp ());
-        const vector3s &p = get_positions (f.pointables ());
+        const vec3s &p = get_positions (f.pointables ());
         fic.update (f.timestamp (), p.size ());
         pt.update (fic.get_count (), p);
         ms.update (pt.get_positions ());

@@ -96,9 +96,9 @@ class soma_measure : public Leap::Listener
 {
     private:
     bool done;
-    sliding_time_window<vector3s> pw;
-    sliding_time_window<vector3s> vw;
-    sliding_time_window<vector3s> dw;
+    sliding_time_window<vec3s> pw;
+    sliding_time_window<vec3s> vw;
+    sliding_time_window<vec3s> dw;
     public:
     soma_measure ()
         : done (false)
@@ -116,9 +116,9 @@ class soma_measure : public Leap::Listener
         if (done)
             return;
         const Leap::Frame &f = c.frame ();
-        const vector3s &p = get_positions (f.pointables ());
-        const vector3s &v = get_velocities (f.pointables ());
-        const vector3s &d = get_directions (f.pointables ());
+        const vec3s &p = get_positions (f.pointables ());
+        const vec3s &v = get_velocities (f.pointables ());
+        const vec3s &d = get_directions (f.pointables ());
         if (p.size () == 6)
         {
             done = true;
