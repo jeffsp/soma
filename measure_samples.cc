@@ -11,62 +11,15 @@ using namespace std;
 using namespace soma;
 const string usage = "usage: measure_samples";
 
-template<typename T>
-float distance (const T &a, const T &b)
-{
-    float dx = a.x - b.x;
-    float dy = a.y - b.y;
-    float dz = a.z - b.z;
-    return sqrt (dx * dx + dy * dy + dz * dz);
-}
-
 template<typename W>
-void movement_stats (const W &w)
-{
-    auto s = w.get_samples ();
-    vector<float> dx;
-    vector<float> dy;
-    vector<float> dz;
-    vector<float> d;
-    for (size_t i = 0; i + 1 < s.size (); ++i)
-    {
-        if (s[i].size () == 1 && s[i + 1].size () == 1)
-        {
-            dx.push_back (s[i][0].x - s[i + 1][0].x);
-            dy.push_back (s[i][0].y - s[i + 1][0].y);
-            dz.push_back (s[i][0].z - s[i + 1][0].z);
-            d.push_back (distance (s[i][0], s[i + 1][0]));
-        }
-    }
-    clog
-        << "average, variance "
-        << ' ' << average (dx)
-        << ' ' << average (dy)
-        << ' ' << average (dz)
-        << ' ' << variance (dx)
-        << ' ' << variance (dy)
-        << ' ' << variance (dz)
-        << endl;
-    auto t = w.get_timestamps ();
-    auto tt = (t.front () - t.back ()) / 1000000.0;
-    auto dd = accumulate (d.begin (), d.end (), 0.0);
-    clog
-        << "distance, time, speed "
-        << ' ' << dd
-        << ' ' << tt
-        << ' ' << dd * 1.0 / tt << "mm/s"
-        << endl;
-}
-
-template<typename W>
-void other_stats (const W &w)
+void stats (const W &w)
 {
     auto s = w.get_samples ();
     vector<float> x;
     vector<float> y;
     vector<float> z;
-    vector<float> a;
-    for (size_t i = 0; i < s.size (); ++i)
+    vector<float> d;
+    for (size_t i = 0; i + 1 < s.size (); ++i)
     {
         if (s[i].size () == 1)
         {
@@ -76,19 +29,19 @@ void other_stats (const W &w)
             x.push_back (fx);
             y.push_back (fy);
             z.push_back (fz);
-            a.push_back (sqrt (fx*fx + fy*fy + fz*fz));
+            d.push_back (sqrt (fx * fx + fy * fy + fz * fz));
         }
     }
     clog
-        << "average, variance "
+        << "average, stddev "
         << ' ' << average (x)
         << ' ' << average (y)
         << ' ' << average (z)
-        << ' ' << average (a)
-        << ' ' << variance (x)
-        << ' ' << variance (y)
-        << ' ' << variance (z)
-        << ' ' << variance (a)
+        << ' ' << average (d)
+        << ' ' << sqrt (variance (x))
+        << ' ' << sqrt (variance (y))
+        << ' ' << sqrt (variance (z))
+        << ' ' << sqrt (variance (d))
         << endl;
 }
 
@@ -130,20 +83,20 @@ class soma_measure : public Leap::Listener
             dw.add_sample (f.timestamp (), d);
             if (pw.fullness (f.timestamp ()) > 0.9)
             {
-                clog << "movement ";
-                movement_stats (pw);
+                clog << "position ";
+                stats (pw);
                 pw.clear ();
             }
             if (vw.fullness (f.timestamp ()) > 0.9)
             {
                 clog << "velocity ";
-                other_stats (vw);
+                stats (vw);
                 vw.clear ();
             }
             if (dw.fullness (f.timestamp ()) > 0.9)
             {
                 clog << "direction ";
-                other_stats (dw);
+                stats (dw);
                 dw.clear ();
             }
         }
