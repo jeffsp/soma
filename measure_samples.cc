@@ -32,16 +32,19 @@ void stats (const W &w, size_t index)
             a.push_back (sqrt (fx * fx + fy * fy + fz * fz));
         }
     }
-    clog
-        << ' ' << average (x)
-        << ' ' << average (y)
-        << ' ' << average (z)
-        << ' ' << average (a)
-        << ' ' << sqrt (variance (x))
-        << ' ' << sqrt (variance (y))
-        << ' ' << sqrt (variance (z))
-        << ' ' << sqrt (variance (a))
-        << endl;
+    if (!x.empty ())
+        clog
+            << ' ' << average (x)
+            << ' ' << average (y)
+            << ' ' << average (z)
+            << ' ' << average (a)
+            << ' ' << sqrt (variance (x))
+            << ' ' << sqrt (variance (y))
+            << ' ' << sqrt (variance (z))
+            << ' ' << sqrt (variance (a))
+            << endl;
+    else
+        clog << endl;
 }
 
 template<typename W>
@@ -60,21 +63,24 @@ void stats (const W &w)
             float dy = s[i][0].y - s[i][1].y;
             float dz = s[i][0].z - s[i][1].z;
             d.push_back (sqrt (dx * dx + dy * dy + dz * dz));
-            xy.push_back (atan (dx / dy) * 180 / M_PI);
-            yz.push_back (atan (dy / dz) * 180 / M_PI);
-            zx.push_back (atan (dz / dx) * 180 / M_PI);
+            xy.push_back (atan2 (dx, dy) * 180 / M_PI);
+            yz.push_back (atan2 (dy, dz) * 180 / M_PI);
+            zx.push_back (atan2 (dz, dx) * 180 / M_PI);
         }
     }
-    clog
-        << ' ' << average (d)
-        << ' ' << average (xy)
-        << ' ' << average (yz)
-        << ' ' << average (zx)
-        << ' ' << sqrt (variance (d))
-        << ' ' << sqrt (variance (xy))
-        << ' ' << sqrt (variance (yz))
-        << ' ' << sqrt (variance (zx))
-        << endl;
+    if (!d.empty ())
+        clog
+            << ' ' << average (d)
+            << ' ' << average (xy)
+            << ' ' << average (yz)
+            << ' ' << average (zx)
+            << ' ' << sqrt (variance (d))
+            << ' ' << sqrt (variance (xy))
+            << ' ' << sqrt (variance (yz))
+            << ' ' << sqrt (variance (zx))
+            << endl;
+    else
+        clog << endl;
 }
 
 class soma_measure : public Leap::Listener
@@ -117,6 +123,7 @@ class soma_measure : public Leap::Listener
             {
                 clog << "position ";
                 stats (pw, 0);
+                clog << "position diffs ";
                 stats (pw);
                 pw.clear ();
             }
@@ -128,8 +135,9 @@ class soma_measure : public Leap::Listener
             }
             if (dw.fullness (f.timestamp ()) > 0.9)
             {
-                clog << "direction ";
+                clog << "direction0";
                 stats (dw, 0);
+                clog << "direction1";
                 stats (dw, 1);
                 dw.clear ();
             }
