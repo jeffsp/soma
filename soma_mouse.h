@@ -17,6 +17,7 @@ const int MINOR_REVISION = 1;
 #include "soma.h"
 #include "stats.h"
 #include <chrono>
+#include <array>
 
 namespace soma
 {
