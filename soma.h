@@ -36,10 +36,28 @@ struct vec3
         , y (a.y)
         , z (a.z)
     { }
+    vec3 (float x, float y, float z)
+        : x (x)
+        , y (y)
+        , z (z)
+    { }
     float x;
     float y;
     float z;
 };
+
+float distance (const vec3 &a, const vec3 &b)
+{
+    float dx = a.x - b.x;
+    float dy = a.y - b.y;
+    float dz = a.z - b.z;
+    return sqrt (dx * dx + dy * dy + dz * dz);
+}
+
+vec3 operator- (const vec3 &a, const vec3 &b)
+{
+    return vec3 (a.x - b.x, a.y - b.y, a.z - b.z);
+}
 
 bool operator== (const vec3 &a, const vec3 &b)
 {
@@ -194,19 +212,15 @@ vec3s get_directions (const Leap::PointableList &l)
     return p;
 }
 
-const uint64_t FEATURE_SAMPLE_DURATION = 1000000/30;
 const uint64_t FEATURE_WINDOW_DURATION = 500000;
 
-struct feature
+struct feature_vector
 {
-    size_t npoints;
-    std::array<vec3,5> tip_positions;
     std::array<vec3,5> tip_velocities;
     std::array<vec3,5> tip_directions;
     std::array<float,4> between_distances;
     std::array<vec3,4> between_directions;
-    feature ()
-        : npoints (0)
+    feature_vector ()
     {
     }
 };
@@ -216,45 +230,33 @@ bool sort_left_to_right (const Leap::Pointable &a, const Leap::Pointable &b)
     return a.tipPosition ().x < b.tipPosition ().x;
 }
 
-feature pointable_list_to_feature (const Leap::PointableList &pl)
+feature_vector pl_to_feature_vector (const Leap::PointableList &pl)
 {
-    feature f;
-    // allow a maximum of 5 pointables in a feature
-    f.npoints = std::min (pl.count (), 5);
+    feature_vector f;
+    // only use at most 5 pointables
+    size_t npoints = std::min (pl.count (), 5);
     // sort from left to right
-    std::vector<Leap::Pointable> p (f.npoints);
-    // get vector of pointers
+    std::vector<Leap::Pointable> p (npoints);
+    // get vector of pointables.  unfortunately, the [] operator returns a copy of the pointable, not a reference, so we
+    // are forced to sort copies of the objects rather than sorting pointers to the objects.
     for (size_t i = 0; i < p.size (); ++i)
         p[i] = pl[i];
     // sort
     sort (p.begin (), p.end (), sort_left_to_right);
-    for (size_t i = 0; i < f.npoints; ++i)
+    // get velocities, directions
+    for (size_t i = 0; i < p.size (); ++i)
     {
-        f.tip_positions[i] = pl[i].tipPosition ();
-        f.tip_velocities[i] = pl[i].tipVelocity ();
-        f.tip_directions[i] = pl[i].direction ();
-        if (i + 1 < f.npoints)
-        {
-            f.between_distances[i] = distance (f.tip_positions[i], f.tip_positions[i + 1]);
-            f.between_directions[i] = direction (f.tip_positions[i], f.tip_positions[i + 1]);
-        }
+        f.tip_velocities[i] = p[i].tipVelocity ();
+        f.tip_directions[i] = p[i].direction ();
+    }
+    // get between measurements
+    for (size_t i = 0; i + 1 < p.size (); ++i)
+    {
+        f.between_distances[i] = distance (p[i].tipPosition (), p[i + 1].tipPosition ());
+        f.between_directions[i] = p[i].tipPosition () - p[i + 1].tipPosition ();
     }
     return f;
 }
-
-class feature_window
-{
-    private:
-    sliding_time_window<feature> w;
-    public:
-    feature_window ()
-        : w (FEATURE_WINDOW_DURATION)
-    {
-    }
-    void update (const unsigned count, const feature &f)
-    {
-    }
-};
 
 enum class hand_position
 {
@@ -265,16 +267,52 @@ enum class hand_position
     centering
 };
 
+class hand_position_classifier
+{
+    private:
+    sliding_time_window<feature_vector> w;
+    public:
+    hand_position_classifier ()
+        : w (FEATURE_WINDOW_DURATION)
+    {
+    }
+    void add_sample (const uint64_t ts, const Leap::PointableList &pl)
+    {
+        w.add_sample (ts, pl_to_feature_vector (pl));
+    }
+    hand_position classify () const
+    {
+        return hand_position::unknown;
+    }
+};
+
 enum class hand_movement
 {
     unknown,
     none,
-    up,
-    down,
-    left,
-    right
+    moving,
+    clicking,
+    right_clicking
 };
 
+class hand_movement_classifier
+{
+    private:
+    sliding_time_window<feature_vector> w;
+    public:
+    hand_movement_classifier ()
+        : w (FEATURE_WINDOW_DURATION)
+    {
+    }
+    void add_sample (const uint64_t ts, const Leap::PointableList &pl)
+    {
+        w.add_sample (ts, pl_to_feature_vector (pl));
+    }
+    hand_movement classify () const
+    {
+        return hand_movement::unknown;
+    }
+};
 
 }
 
