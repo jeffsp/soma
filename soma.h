@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <deque>
 #include <iostream>
+#include <unistd.h>
 #include <unordered_map>
 #include <sstream>
 #include <stdexcept>
@@ -183,6 +184,8 @@ class feature_vector
     }
 };
 
+typedef std::vector<uint64_t> timestamps;
+typedef std::vector<feature_vector> feature_vectors;
 
 enum class hand_position
 {
@@ -193,6 +196,24 @@ enum class hand_position
     centering
 };
 
+std::string to_string (const hand_position hp)
+{
+    switch (hp)
+    {
+        default:
+        throw std::runtime_error ("invalid hand position");
+        case hand_position::unknown:
+        return std::string ("unknown");
+        case hand_position::pointing:
+        return std::string ("pointing");
+        case hand_position::clicking:
+        return std::string ("clicking");
+        case hand_position::scrolling:
+        return std::string ("scrolling");
+        case hand_position::centering:
+        return std::string ("centering");
+    }
+}
 
 class hand_position_classifier
 {
@@ -204,9 +225,8 @@ class hand_position_classifier
         : w (FEATURE_WINDOW_DURATION)
     {
     }
-    void add_sample (const uint64_t ts, const Leap::PointableList &pl)
+    void update (const hand_position hp, const feature_vectors &fvs, const timestamps &ts)
     {
-        w.add_sample (ts, feature_vector (pl));
     }
     hand_position classify () const
     {
