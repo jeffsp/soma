@@ -13,7 +13,7 @@ const string usage = "usage: dump_samples <#>";
 class soma_dumper : public Leap::Listener
 {
     private:
-    const unsigned n;
+    const int n;
     bool done;
     frame_counter frc;
     public:
@@ -32,15 +32,19 @@ class soma_dumper : public Leap::Listener
             return;
         const Leap::Frame &f = c.frame ();
         frc.update (f.timestamp ());
-        const vec3s &p = get_positions (f.pointables ());
-        if (p.size () == 6)
+        Leap::PointableList p = f.pointables ();
+        if (p.count () == 6)
         {
             done = true;
         }
-        else if (p.size () == n)
+        else if (p.count () == n)
         {
-            for (size_t i = 0; i < p.size (); ++i)
-                cout << ' ' << p[i];
+            for (int i = 0; i < p.count (); ++i)
+            {
+                cout << ' ' << p[i].tipPosition ().x;
+                cout << ' ' << p[i].tipPosition ().y;
+                cout << ' ' << p[i].tipPosition ().z;
+            }
             cout << endl;
             if (!(frc.get_frames () % 100))
                 std::clog << frc.fps () << "fps" << std::endl;

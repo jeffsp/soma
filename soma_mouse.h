@@ -22,6 +22,93 @@ const int MINOR_REVISION = 1;
 namespace soma
 {
 
+// Euclidean 3D vector
+struct vec3
+{
+    vec3 ()
+        : x (0.0f)
+        , y (0.0f)
+        , z (0.0f)
+    { }
+    vec3 (const Leap::Vector &a)
+        : x (a.x)
+        , y (a.y)
+        , z (a.z)
+    { }
+    vec3 (float x, float y, float z)
+        : x (x)
+        , y (y)
+        , z (z)
+    { }
+    float x;
+    float y;
+    float z;
+};
+
+float distance (const vec3 &a, const vec3 &b)
+{
+    float dx = a.x - b.x;
+    float dy = a.y - b.y;
+    float dz = a.z - b.z;
+    return sqrt (dx * dx + dy * dy + dz * dz);
+}
+
+vec3 operator- (const vec3 &a, const vec3 &b)
+{
+    return vec3 (a.x - b.x, a.y - b.y, a.z - b.z);
+}
+
+bool operator== (const vec3 &a, const vec3 &b)
+{
+    return a.x == b.x && a.y == b.y && a.z == b.z;
+}
+
+bool operator!= (const vec3 &a, const vec3 &b)
+{
+    return !(a == b);
+}
+
+/// @brief i/o helper
+std::ostream& operator<< (std::ostream &s, const vec3 &p)
+{
+    s << p.x << ' ' << p.y << ' ' << p.z;
+    return s;
+}
+
+typedef std::vector<vec3> vec3s;
+
+vec3s get_positions (const Leap::PointableList &l)
+{
+    vec3s p (l.count ());
+    for (size_t i = 0; i < p.size (); ++i)
+        p[i] = l[i].tipPosition ();
+    return p;
+}
+
+vec3s get_velocities (const Leap::PointableList &l)
+{
+    vec3s p (l.count ());
+    for (size_t i = 0; i < p.size (); ++i)
+        p[i] = l[i].tipVelocity ();
+    return p;
+}
+
+vec3s get_directions (const Leap::PointableList &l)
+{
+    vec3s p (l.count ());
+    for (size_t i = 0; i < p.size (); ++i)
+        p[i] = l[i].direction ();
+    return p;
+}
+
+/// @brief i/o helper
+std::ostream& operator<< (std::ostream &s, const vec3s &p)
+{
+    for (auto i : p)
+        s << ' ' << i;
+    return s;
+}
+
 const uint64_t FINGER_COUNTER_WINDOW_DURATION = 200000;
 const float FINGER_COUNTER_WINDOW_FULLNESS = 0.85f;
 const float FINGER_COUNTER_CERTAINTY = 0.8f;

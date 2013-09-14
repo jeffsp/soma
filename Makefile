@@ -2,7 +2,7 @@ all:
 	waf configure
 	waf
 
-run: measure
+run: train
 
 mouse: all
 	./build/debug/soma_mouse
@@ -13,5 +13,5 @@ check: all
 dump: all
 	./build/debug/dump_samples 1 > /dev/null
 
-measure: all
-	./build/debug/measure_samples
+train: all
+	./build/debug/train
