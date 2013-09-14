@@ -60,6 +60,21 @@ class frame_grabber : public Leap::Listener
     }
 };
 
+void train (const uint64_t sd, frame_grabber &fg, hand_position_classifier &hpc, const hand_position hp)
+{
+    string hps = to_string (hp);
+    std::transform (hps.begin(), hps.end(), hps.begin(), ::toupper);
+    clog << "training hand position " << hps << endl;
+    clog << "press enter" << endl;
+    string str;
+    getline (cin, str);
+    clog << "getting feature vectors... ";
+    fg.grab (sd);
+    feature_vectors fvs = fg.get_feature_vectors ();
+    clog << "got " << fvs.size () << " samples" << endl;
+    hpc.update (hp, fvs);
+}
+
 int main (int argc, char **argv)
 {
     try
@@ -71,26 +86,16 @@ int main (int argc, char **argv)
         Leap::Controller c (fg);
 
         const size_t PASSES = 10;
+        const uint64_t SAMPLE_DURATION = 1000000;
 
         for (size_t pass = 0; pass < PASSES; ++pass)
         {
             clog << "pass " << pass << endl;
 
-            hand_position hp = hand_position::pointing;
-            string hps = to_string (hp);
-            std::transform (hps.begin(), hps.end(), hps.begin(), ::toupper);
-            clog << "training hand position " << hps << endl;
-            clog << "press enter" << endl;
-            string str;
-            getline (cin, str);
-            clog << "getting feature vectors... ";
-            fg.grab (1000000);
-            feature_vectors fvs = fg.get_feature_vectors ();
-            timestamps ts = fg.get_timestamps ();
-            assert (fvs.size () == ts.size ());
-            clog << "got " << fvs.size () << " samples" << endl;
             hand_position_classifier hpc;
-            hpc.update (hp, fvs, ts);
+            vector<hand_position> vhp { hand_position::pointing, hand_position::clicking, hand_position::scrolling, hand_position::centering };
+            for (auto hp : vhp)
+                train (SAMPLE_DURATION, fg, hpc, hp);
         }
 
         return 0;

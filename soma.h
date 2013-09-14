@@ -133,14 +133,20 @@ bool sort_left_to_right (const Leap::Pointable &a, const Leap::Pointable &b)
 
 class feature_vector
 {
-    private:
-    std::array<float,
+    public:
+    static const size_t size =
         5 * 3 // 5 tip velocities
         + 5 * 3 // 5 tip directions
         + 4 * 1 // 4 between distances
-        + 4 * 3 // 4 between directions
-        > v;
+        + 4 * 3; // 4 between directions
+    typedef std::array<float,size> container_type;
+    private:
+    container_type v;
     public:
+    const container_type &values ()
+    {
+        return v;
+    }
     feature_vector (const Leap::PointableList &pl)
     {
         // only use at most 5 pointables
@@ -215,17 +221,41 @@ std::string to_string (const hand_position hp)
     }
 }
 
+template<typename T>
+class stats
+{
+    public:
+    void update (const T &x)
+    {
+        ++total;
+        u1 += x;
+        u2 += x * x;
+    }
+    double mean ()
+    {
+        return static_cast<double> (u1) / total;
+    }
+    double variance ()
+    {
+        double u = mean ();
+        return static_cast<double> (u2) / total - u * u;
+    }
+    private:
+    size_t total;
+    T u1;
+    T u2;
+};
+
 class hand_position_classifier
 {
     private:
-    static const uint64_t FEATURE_WINDOW_DURATION = 500000;
-    sliding_time_window<feature_vector> w;
+    std::vector<stats<float>> vs;
     public:
     hand_position_classifier ()
-        : w (FEATURE_WINDOW_DURATION)
+        : vs (feature_vector::size)
     {
     }
-    void update (const hand_position hp, const feature_vectors &fvs, const timestamps &ts)
+    void update (const hand_position hp, const feature_vectors &fvs)
     {
     }
     hand_position classify () const
