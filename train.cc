@@ -33,7 +33,7 @@ class frame_grabber : public Leap::Listener
         // save the frame info
         fvs.push_back (feature_vector (f.pointables ()));
         ts.push_back (f.timestamp ());
-        if (ts.back () - ts.front () > max_time)
+        if (ts.back () - ts.front () >= max_time)
             on = false;
     }
     const feature_vectors &get_feature_vectors ()
@@ -60,19 +60,46 @@ class frame_grabber : public Leap::Listener
     }
 };
 
-void train (const uint64_t sd, frame_grabber &fg, hand_position_classifier &hpc, const hand_position hp)
+void train (frame_grabber &fg, hand_position_classifier &hpc, const hand_position hp)
 {
+    const uint64_t SAMPLE_DURATION = 1000000;
+    // display hand position
     string hps = to_string (hp);
     std::transform (hps.begin(), hps.end(), hps.begin(), ::toupper);
     clog << "training hand position " << hps << endl;
+    // continue after user input
     clog << "press enter" << endl;
     string str;
     getline (cin, str);
     clog << "getting feature vectors... ";
-    fg.grab (sd);
+    // grab some vectors
+    fg.grab (SAMPLE_DURATION);
     feature_vectors fvs = fg.get_feature_vectors ();
     clog << "got " << fvs.size () << " samples" << endl;
+    // record them
     hpc.update (hp, fvs);
+}
+
+void classify (frame_grabber &fg, const hand_position_classifier &hpc)
+{
+    const uint64_t SAMPLE_DURATION = 100000;
+    while (1)
+    {
+        // get some frames
+        fg.grab (SAMPLE_DURATION);
+        feature_vectors fvs = fg.get_feature_vectors ();
+        timestamps ts = fg.get_timestamps ();
+        assert (!fvs.empty ());
+        assert (fvs.size () == ts.size ());
+        // classify them
+        hand_position hp;
+        float p;
+        hpc.classify (fvs, ts, hp, p);
+        // show the class you got and its likelihood
+        string hps = to_string (hp);
+        std::transform (hps.begin(), hps.end(), hps.begin(), ::toupper);
+        clog << "class = " << hps << " (" << p << ")" << endl;
+    }
 }
 
 int main (int argc, char **argv)
@@ -84,19 +111,19 @@ int main (int argc, char **argv)
 
         frame_grabber fg;
         Leap::Controller c (fg);
+        hand_position_classifier hpc;
 
-        const size_t PASSES = 10;
-        const uint64_t SAMPLE_DURATION = 1000000;
-
+        const size_t PASSES = 1;
         for (size_t pass = 0; pass < PASSES; ++pass)
         {
             clog << "pass " << pass << endl;
 
-            hand_position_classifier hpc;
             vector<hand_position> vhp { hand_position::pointing, hand_position::clicking, hand_position::scrolling, hand_position::centering };
             for (auto hp : vhp)
-                train (SAMPLE_DURATION, fg, hpc, hp);
+                train (fg, hpc, hp);
         }
+
+        classify (fg, hpc);
 
         return 0;
     }
