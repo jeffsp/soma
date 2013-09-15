@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <deque>
 #include <iostream>
+#include <map>
 #include <unistd.h>
 #include <unordered_map>
 #include <sstream>
@@ -131,21 +132,16 @@ bool sort_left_to_right (const Leap::Pointable &a, const Leap::Pointable &b)
     return a.tipPosition ().x < b.tipPosition ().x;
 }
 
-class feature_vector
+const size_t FVN =
+      5 * 3 // 5 tip velocities
+    + 5 * 3 // 5 tip directions
+    + 4 * 1 // 4 between distances
+    + 4 * 3; // 4 between directions
+class feature_vector : public std::array<float,FVN>
 {
     public:
-    static const size_t size =
-        5 * 3 // 5 tip velocities
-        + 5 * 3 // 5 tip directions
-        + 4 * 1 // 4 between distances
-        + 4 * 3; // 4 between directions
-    typedef std::array<float,size> container_type;
-    private:
-    container_type v;
-    public:
-    const container_type &values ()
+    feature_vector ()
     {
-        return v;
     }
     feature_vector (const Leap::PointableList &pl)
     {
@@ -161,32 +157,32 @@ class feature_vector
         size_t i = 0;
         for (size_t j = 0; j < 5; ++j)
         {
-            assert (i < v.size ());
-            v[i++] = j < p.size () ? p[j].tipVelocity ().x : 0.0;
-            v[i++] = j < p.size () ? p[j].tipVelocity ().y : 0.0;
-            v[i++] = j < p.size () ? p[j].tipVelocity ().z : 0.0;
+            assert (i < size ());
+            data ()[i++] = j < p.size () ? p[j].tipVelocity ().x : 0.0;
+            data ()[i++] = j < p.size () ? p[j].tipVelocity ().y : 0.0;
+            data ()[i++] = j < p.size () ? p[j].tipVelocity ().z : 0.0;
         }
         for (size_t j = 0; j < 5; ++j)
         {
-            assert (i < v.size ());
-            v[i++] = j < p.size () ? p[j].direction ().x : 0.0;
-            v[i++] = j < p.size () ? p[j].direction ().y : 0.0;
-            v[i++] = j < p.size () ? p[j].direction ().z : 0.0;
+            assert (i < size ());
+            data ()[i++] = j < p.size () ? p[j].direction ().x : 0.0;
+            data ()[i++] = j < p.size () ? p[j].direction ().y : 0.0;
+            data ()[i++] = j < p.size () ? p[j].direction ().z : 0.0;
         }
         for (size_t j = 0; j < 4; ++j)
         {
-            assert (i < v.size ());
-            v[i++] = j + 1 < p.size () ? p[j].tipPosition ().distanceTo (p[j + 1].tipPosition ()) : 0.0;
+            assert (i < size ());
+            data ()[i++] = j + 1 < p.size () ? p[j].tipPosition ().distanceTo (p[j + 1].tipPosition ()) : 0.0;
         }
         for (size_t j = 0; j < 4; ++j)
         {
-            assert (i < v.size ());
+            assert (i < size ());
             Leap::Vector dir = j + 1 < p.size () ? p[j].tipPosition () - p[j + 1].tipPosition () : Leap::Vector ();
-            v[i++] = dir.x;
-            v[i++] = dir.y;
-            v[i++] = dir.z;
+            data ()[i++] = dir.x;
+            data ()[i++] = dir.y;
+            data ()[i++] = dir.z;
         }
-        assert (i == v.size ());
+        assert (i == size ());
     }
 };
 
@@ -221,42 +217,49 @@ std::string to_string (const hand_position hp)
     }
 }
 
-template<typename T>
+template<typename T,size_t N>
 class stats
 {
-    public:
-    void update (const T &x)
-    {
-        ++total;
-        u1 += x;
-        u2 += x * x;
-    }
-    double mean ()
-    {
-        return static_cast<double> (u1) / total;
-    }
-    double variance ()
-    {
-        double u = mean ();
-        return static_cast<double> (u2) / total - u * u;
-    }
     private:
     size_t total;
-    T u1;
-    T u2;
+    std::array<T,N> u1;
+    std::array<T,N> u2;
+    public:
+    template<typename A>
+    void update (const A &v)
+    {
+        assert (v.size () == u1.size ());
+        assert (v.size () == u2.size ());
+        ++total;
+        for (size_t i = 0; i < v.size (); ++i)
+        {
+            u1[i] += v[i];
+            u2[i] += v[i] * v[i];
+        }
+    }
+    double mean (size_t i)
+    {
+        return static_cast<double> (u1[i]) / total;
+    }
+    double variance (size_t i)
+    {
+        double u = mean (i);
+        return static_cast<double> (u2[i]) / total - u * u;
+    }
 };
 
 class hand_position_classifier
 {
     private:
-    std::vector<stats<float>> vs;
+    std::map<hand_position,stats<float,FVN>> umhps;
     public:
     hand_position_classifier ()
-        : vs (feature_vector::size)
     {
     }
     void update (const hand_position hp, const feature_vectors &fvs)
     {
+        for (auto i : fvs)
+            umhps[hp].update (i);
     }
     hand_position classify () const
     {
@@ -282,14 +285,6 @@ class hand_movement_classifier
     hand_movement_classifier ()
         : w (FEATURE_WINDOW_DURATION)
     {
-    }
-    void add_sample (const uint64_t ts, const Leap::PointableList &pl)
-    {
-        w.add_sample (ts, feature_vector (pl));
-    }
-    hand_movement classify () const
-    {
-        return hand_movement::unknown;
     }
 };
 
