@@ -237,11 +237,11 @@ class stats
             u2[i] += v[i] * v[i];
         }
     }
-    double mean (size_t i)
+    double mean (size_t i) const
     {
         return static_cast<double> (u1[i]) / total;
     }
-    double variance (size_t i)
+    double variance (size_t i) const
     {
         double u = mean (i);
         return static_cast<double> (u2[i]) / total - u * u;
@@ -251,7 +251,7 @@ class stats
 class hand_position_classifier
 {
     private:
-    std::map<hand_position,stats<float,FVN>> umhps;
+    std::map<hand_position,stats<float,FVN>> mhps;
     public:
     hand_position_classifier ()
     {
@@ -259,11 +259,45 @@ class hand_position_classifier
     void update (const hand_position hp, const feature_vectors &fvs)
     {
         for (auto i : fvs)
-            umhps[hp].update (i);
+            mhps[hp].update (i);
     }
-    hand_position classify () const
+    void classify (const feature_vectors &fvs, const timestamps &ts, hand_position &hp, float &p) const
     {
-        return hand_position::unknown;
+        hand_position tmp_hp = hand_position::unknown;
+        std::map<hand_position,float> l;
+        float tmp_p = 0.0f;
+        for (auto h : {
+            hand_position::pointing,
+            hand_position::clicking,
+            hand_position::scrolling,
+            hand_position::centering })
+        {
+            for (auto i : fvs)
+            {
+                for (size_t j = 0; j < i.size (); ++j)
+                {
+                    // get p for this feature vector dimension
+                    float x = i[j]; // feature dimension value
+                    auto s = mhps.find (h);
+                    assert (s != mhps.end ());
+                    float m = s->second.mean (j); // mean of dimension's dist
+                    float v = s->second.variance (j); // var of dimension's dist
+                    // update log likelihood
+                    if (v != 0.0f)
+                        l[h] -= (x - m) * (x - m) / (2 * v);
+                }
+            }
+        }
+        for (auto i : l)
+            std::clog
+                << to_string (i.first)
+                << " = "
+                << i.second
+                << "p = "
+                << exp (i.second)
+                << std::endl;
+        hp = tmp_hp;
+        p = tmp_p;
     }
 };
 
