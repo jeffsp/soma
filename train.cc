@@ -62,7 +62,7 @@ class frame_grabber : public Leap::Listener
 
 void train (frame_grabber &fg, hand_position_classifier &hpc, const hand_position hp)
 {
-    const uint64_t SAMPLE_DURATION = 1000000;
+    const uint64_t SAMPLE_DURATION = 10000000;
     // display hand position
     string hps = to_string (hp);
     std::transform (hps.begin(), hps.end(), hps.begin(), ::toupper);
@@ -82,7 +82,7 @@ void train (frame_grabber &fg, hand_position_classifier &hpc, const hand_positio
 
 void classify (frame_grabber &fg, const hand_position_classifier &hpc)
 {
-    const uint64_t SAMPLE_DURATION = 100000;
+    const uint64_t SAMPLE_DURATION = 200000;
     while (1)
     {
         // get some frames
@@ -113,7 +113,7 @@ int main (int argc, char **argv)
         Leap::Controller c (fg);
         hand_position_classifier hpc;
 
-        const size_t PASSES = 3;
+        const size_t PASSES = 1;
         for (size_t pass = 0; pass < PASSES; ++pass)
         {
             clog << "pass " << pass << endl;
