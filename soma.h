@@ -143,6 +143,7 @@ const size_t FVN =
     + 5 * 3 // 5 tip directions
     + 4 * 1 // 4 between distances
     + 4 * 3; // 4 between directions
+
 class feature_vector : public std::array<float,FVN>
 {
     public:
@@ -191,6 +192,19 @@ class feature_vector : public std::array<float,FVN>
         assert (i == size ());
     }
 };
+
+feature_vector zero_movement (const feature_vector &f)
+{
+    feature_vector z (f);
+    size_t i = 0;
+    for (size_t j = 0; j < 5; ++j)
+    {
+        z[i++] = noise ();
+        z[i++] = noise ();
+        z[i++] = noise ();
+    }
+    return z;
+}
 
 typedef std::vector<uint64_t> timestamps;
 typedef std::vector<feature_vector> feature_vectors;
@@ -265,7 +279,7 @@ class hand_position_classifier
     void update (const hand_position hp, const feature_vectors &fvs)
     {
         for (auto i : fvs)
-            mhps[hp].update (i);
+            mhps[hp].update (zero_movement (i));
     }
     void classify (const feature_vectors &fvs, const timestamps &ts, hand_position &hp, float &p) const
     {
@@ -278,10 +292,11 @@ class hand_position_classifier
         {
             for (auto i : fvs)
             {
-                for (size_t j = 0; j < i.size (); ++j)
+                auto z = zero_movement (i);
+                for (size_t j = 0; j < z.size (); ++j)
                 {
                     // get p for this feature vector dimension
-                    float x = i[j]; // feature dimension value
+                    float x = z[j]; // feature dimension value
                     auto s = mhps.find (h);
                     assert (s != mhps.end ());
                     float m = s->second.mean (j); // mean of dimension's dist
