@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <deque>
 #include <iostream>
+#include <limits>
 #include <map>
 #include <unistd.h>
 #include <unordered_map>
@@ -132,6 +133,11 @@ bool sort_left_to_right (const Leap::Pointable &a, const Leap::Pointable &b)
     return a.tipPosition ().x < b.tipPosition ().x;
 }
 
+float noise ()
+{
+    return static_cast<float> (2.0 * rand () - 1.0) / RAND_MAX;
+}
+
 const size_t FVN =
       5 * 3 // 5 tip velocities
     + 5 * 3 // 5 tip directions
@@ -158,29 +164,29 @@ class feature_vector : public std::array<float,FVN>
         for (size_t j = 0; j < 5; ++j)
         {
             assert (i < size ());
-            data ()[i++] = j < p.size () ? p[j].tipVelocity ().x : 0.0;
-            data ()[i++] = j < p.size () ? p[j].tipVelocity ().y : 0.0;
-            data ()[i++] = j < p.size () ? p[j].tipVelocity ().z : 0.0;
+            data ()[i++] = j < p.size () ? p[j].tipVelocity ().x : noise ();
+            data ()[i++] = j < p.size () ? p[j].tipVelocity ().y : noise ();
+            data ()[i++] = j < p.size () ? p[j].tipVelocity ().z : noise ();
         }
         for (size_t j = 0; j < 5; ++j)
         {
             assert (i < size ());
-            data ()[i++] = j < p.size () ? p[j].direction ().x : 0.0;
-            data ()[i++] = j < p.size () ? p[j].direction ().y : 0.0;
-            data ()[i++] = j < p.size () ? p[j].direction ().z : 0.0;
+            data ()[i++] = j < p.size () ? p[j].direction ().x : noise ();
+            data ()[i++] = j < p.size () ? p[j].direction ().y : noise ();
+            data ()[i++] = j < p.size () ? p[j].direction ().z : noise ();
         }
         for (size_t j = 0; j < 4; ++j)
         {
             assert (i < size ());
-            data ()[i++] = j + 1 < p.size () ? p[j].tipPosition ().distanceTo (p[j + 1].tipPosition ()) : 0.0;
+            data ()[i++] = j + 1 < p.size () ? p[j].tipPosition ().distanceTo (p[j + 1].tipPosition ()) : noise ();
         }
         for (size_t j = 0; j < 4; ++j)
         {
             assert (i < size ());
             Leap::Vector dir = j + 1 < p.size () ? p[j].tipPosition () - p[j + 1].tipPosition () : Leap::Vector ();
-            data ()[i++] = dir.x;
-            data ()[i++] = dir.y;
-            data ()[i++] = dir.z;
+            data ()[i++] = j < p.size () ? dir.x : noise ();
+            data ()[i++] = j < p.size () ? dir.y : noise ();
+            data ()[i++] = j < p.size () ? dir.z : noise ();
         }
         assert (i == size ());
     }
@@ -263,9 +269,7 @@ class hand_position_classifier
     }
     void classify (const feature_vectors &fvs, const timestamps &ts, hand_position &hp, float &p) const
     {
-        hand_position tmp_hp = hand_position::unknown;
         std::map<hand_position,float> l;
-        float tmp_p = 0.0f;
         for (auto h : {
             hand_position::pointing,
             hand_position::clicking,
@@ -288,16 +292,23 @@ class hand_position_classifier
                 }
             }
         }
+        float best_value = std::numeric_limits<int>::min ();
+        hand_position best_hp = hand_position::unknown;
         for (auto i : l)
+        {
             std::clog
                 << to_string (i.first)
                 << " = "
                 << i.second
-                << "p = "
-                << exp (i.second)
                 << std::endl;
-        hp = tmp_hp;
-        p = tmp_p;
+            if (i.second > best_value)
+            {
+                best_hp = i.first;
+                best_value = i.second;
+            }
+        }
+        hp = best_hp;
+        p = best_value;
     }
 };
 
