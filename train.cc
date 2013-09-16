@@ -113,7 +113,7 @@ int main (int argc, char **argv)
         Leap::Controller c (fg);
         hand_position_classifier hpc;
 
-        const size_t PASSES = 1;
+        const size_t PASSES = 3;
         for (size_t pass = 0; pass < PASSES; ++pass)
         {
             clog << "pass " << pass << endl;
