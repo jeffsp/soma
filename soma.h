@@ -51,9 +51,9 @@ class frame_counter
     {
         return frames;
     }
-    float fps () const
+    double fps () const
     {
-        float secs = static_cast<float> (last_ts - first_ts) / 1000000;
+        double secs = static_cast<double> (last_ts - first_ts) / 1000000;
         // don't count the last frame
         if (frames != 0 && secs != 0.0f)
             return (frames - 1) / secs;
@@ -93,11 +93,11 @@ class sliding_time_window
         samples.clear ();
         timestamps.clear ();
     }
-    float fullness (uint64_t ts) const
+    double fullness (uint64_t ts) const
     {
         if (timestamps.empty ())
             return 0.0f;
-        float start = timestamps.back ();
+        double start = timestamps.back ();
         assert (start <= ts);
         assert (duration != 0);
         return (ts - start) / duration;
@@ -133,18 +133,13 @@ bool sort_left_to_right (const Leap::Pointable &a, const Leap::Pointable &b)
     return a.tipPosition ().x < b.tipPosition ().x;
 }
 
-float noise ()
-{
-    return static_cast<float> (2.0 * rand () - 1.0) / RAND_MAX;
-}
-
 const size_t FVN =
       5 * 3 // 5 tip velocities
     + 5 * 3 // 5 tip directions
     + 4 * 1 // 4 between distances
     + 4 * 3; // 4 between directions
 
-class feature_vector : public std::array<float,FVN>
+class feature_vector : public std::array<double,FVN>
 {
     public:
     feature_vector ()
@@ -165,29 +160,29 @@ class feature_vector : public std::array<float,FVN>
         for (size_t j = 0; j < 5; ++j)
         {
             assert (i < size ());
-            data ()[i++] = j < p.size () ? p[j].tipVelocity ().x : noise ();
-            data ()[i++] = j < p.size () ? p[j].tipVelocity ().y : noise ();
-            data ()[i++] = j < p.size () ? p[j].tipVelocity ().z : noise ();
+            data ()[i++] = j < p.size () ? p[j].tipVelocity ().x : 0.0;
+            data ()[i++] = j < p.size () ? p[j].tipVelocity ().y : 0.0;
+            data ()[i++] = j < p.size () ? p[j].tipVelocity ().z : 0.0;
         }
         for (size_t j = 0; j < 5; ++j)
         {
             assert (i < size ());
-            data ()[i++] = j < p.size () ? p[j].direction ().x : noise ();
-            data ()[i++] = j < p.size () ? p[j].direction ().y : noise ();
-            data ()[i++] = j < p.size () ? p[j].direction ().z : noise ();
+            data ()[i++] = j < p.size () ? p[j].direction ().x : 0.0;
+            data ()[i++] = j < p.size () ? p[j].direction ().y : 0.0;
+            data ()[i++] = j < p.size () ? p[j].direction ().z : 0.0;
         }
         for (size_t j = 0; j < 4; ++j)
         {
             assert (i < size ());
-            data ()[i++] = j + 1 < p.size () ? p[j].tipPosition ().distanceTo (p[j + 1].tipPosition ()) : noise ();
+            data ()[i++] = j + 1 < p.size () ? p[j].tipPosition ().distanceTo (p[j + 1].tipPosition ()) : 0.0;
         }
         for (size_t j = 0; j < 4; ++j)
         {
             assert (i < size ());
             Leap::Vector dir = j + 1 < p.size () ? p[j].tipPosition () - p[j + 1].tipPosition () : Leap::Vector ();
-            data ()[i++] = j < p.size () ? dir.x : noise ();
-            data ()[i++] = j < p.size () ? dir.y : noise ();
-            data ()[i++] = j < p.size () ? dir.z : noise ();
+            data ()[i++] = j + 1 < p.size () ? dir.x : 0.0;
+            data ()[i++] = j + 1 < p.size () ? dir.y : 0.0;
+            data ()[i++] = j + 1 < p.size () ? dir.z : 0.0;
         }
         assert (i == size ());
     }
@@ -199,9 +194,9 @@ feature_vector zero_movement (const feature_vector &f)
     size_t i = 0;
     for (size_t j = 0; j < 5; ++j)
     {
-        z[i++] = noise ();
-        z[i++] = noise ();
-        z[i++] = noise ();
+        z[i++] = 0.0;
+        z[i++] = 0.0;
+        z[i++] = 0.0;
     }
     return z;
 }
@@ -264,6 +259,7 @@ class stats
     double variance (size_t i) const
     {
         double u = mean (i);
+        assert (static_cast<double> (u2[i]) / total >= u * u);
         return static_cast<double> (u2[i]) / total - u * u;
     }
 };
@@ -271,7 +267,7 @@ class stats
 class hand_position_classifier
 {
     private:
-    std::map<hand_position,stats<float,FVN>> mhps;
+    std::map<hand_position,stats<double,FVN>> mhps;
     public:
     hand_position_classifier ()
     {
@@ -280,10 +276,20 @@ class hand_position_classifier
     {
         for (auto i : fvs)
             mhps[hp].update (zero_movement (i));
+        for (auto s : mhps)
+        {
+            std::clog << to_string (s.first) << std::endl;
+            for (size_t j = 0; j < FVN; ++j)
+            {
+                double m = s.second.mean (j); // mean of dimension's dist
+                double v = s.second.variance (j); // var of dimension's dist
+                std::clog << j << ' ' << m << ' ' << sqrt (v) << std::endl;
+            }
+        }
     }
-    void classify (const feature_vectors &fvs, const timestamps &ts, hand_position &hp, float &p) const
+    void classify (const feature_vectors &fvs, const timestamps &ts, hand_position &hp, double &p) const
     {
-        std::map<hand_position,float> l;
+        std::map<hand_position,double> l;
         for (auto h : {
             hand_position::pointing,
             hand_position::clicking,
@@ -296,18 +302,18 @@ class hand_position_classifier
                 for (size_t j = 0; j < z.size (); ++j)
                 {
                     // get p for this feature vector dimension
-                    float x = z[j]; // feature dimension value
+                    double x = z[j]; // feature dimension value
                     auto s = mhps.find (h);
                     assert (s != mhps.end ());
-                    float m = s->second.mean (j); // mean of dimension's dist
-                    float v = s->second.variance (j); // var of dimension's dist
+                    double m = s->second.mean (j); // mean of dimension's dist
+                    double v = s->second.variance (j); // var of dimension's dist
                     // update log likelihood
                     if (v != 0.0f)
                         l[h] -= (x - m) * (x - m) / (2 * v);
                 }
             }
         }
-        float best_value = std::numeric_limits<int>::min ();
+        double best_value = std::numeric_limits<int>::min ();
         hand_position best_hp = hand_position::unknown;
         for (auto i : l)
         {
