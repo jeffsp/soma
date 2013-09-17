@@ -56,7 +56,7 @@ class options
     /// @brief turn sound on/off
     option<bool> sound;
     /// @brief change the speed of the mouse
-    option<float> mouse_speed;
+    option<double> mouse_speed;
     public:
     /// @brief constructor
     options ()
@@ -89,12 +89,12 @@ class options
         sound.value = f;
     }
     /// @brief option access
-    float get_mouse_speed () const
+    double get_mouse_speed () const
     {
         return mouse_speed.value;
     }
     /// @brief option access
-    void set_mouse_speed (float s)
+    void set_mouse_speed (double s)
     {
         if (s == mouse_speed.value)
             return;

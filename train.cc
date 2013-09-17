@@ -82,7 +82,7 @@ void train (frame_grabber &fg, hand_position_classifier &hpc, const hand_positio
 
 void classify (frame_grabber &fg, const hand_position_classifier &hpc)
 {
-    const uint64_t SAMPLE_DURATION = 200000;
+    const uint64_t SAMPLE_DURATION = 100000;
     while (1)
     {
         // get some frames
@@ -93,7 +93,7 @@ void classify (frame_grabber &fg, const hand_position_classifier &hpc)
         assert (fvs.size () == ts.size ());
         // classify them
         hand_position hp;
-        float p;
+        double p;
         hpc.classify (fvs, ts, hp, p);
         // show the class you got and its likelihood
         string hps = to_string (hp);

@@ -35,21 +35,21 @@ struct vec3
         , y (a.y)
         , z (a.z)
     { }
-    vec3 (float x, float y, float z)
+    vec3 (double x, double y, double z)
         : x (x)
         , y (y)
         , z (z)
     { }
-    float x;
-    float y;
-    float z;
+    double x;
+    double y;
+    double z;
 };
 
-float distance (const vec3 &a, const vec3 &b)
+double distance (const vec3 &a, const vec3 &b)
 {
-    float dx = a.x - b.x;
-    float dy = a.y - b.y;
-    float dz = a.z - b.z;
+    double dx = a.x - b.x;
+    double dy = a.y - b.y;
+    double dz = a.z - b.z;
     return sqrt (dx * dx + dy * dy + dz * dz);
 }
 
@@ -110,8 +110,8 @@ std::ostream& operator<< (std::ostream &s, const vec3s &p)
 }
 
 const uint64_t FINGER_COUNTER_WINDOW_DURATION = 200000;
-const float FINGER_COUNTER_WINDOW_FULLNESS = 0.85f;
-const float FINGER_COUNTER_CERTAINTY = 0.8f;
+const double FINGER_COUNTER_WINDOW_FULLNESS = 0.85f;
+const double FINGER_COUNTER_CERTAINTY = 0.8f;
 
 class finger_counter
 {
@@ -134,11 +134,11 @@ class finger_counter
             auto s = w.get_samples ();
             assert (s.size () > 0);
             unsigned count = mode (s);
-            float total = 0.0f;
+            double total = 0.0f;
             for (auto i : s)
                 if (i == count)
                     ++total;
-            float certainty = total / s.size ();
+            double certainty = total / s.size ();
             // don't change unless certainty is high
             if (certainty < FINGER_COUNTER_CERTAINTY)
                 return;
@@ -222,15 +222,15 @@ class mouse_pointer
     mouse &m;
     vec3 last_point;
     bool last_point_valid;
-    float speed;
+    double speed;
     public:
-    mouse_pointer (mouse &m, float speed)
+    mouse_pointer (mouse &m, double speed)
         : m (m)
         , last_point_valid (false)
         , speed (speed)
     {
     }
-    void set_speed (float s)
+    void set_speed (double s)
     {
         if (s >= 1.0)
             speed = s;
@@ -244,8 +244,8 @@ class mouse_pointer
         assert (!p.empty ());
         if (last_point_valid)
         {
-            float x = last_point.x - p[0].x;
-            float y = last_point.y - p[0].y;
+            double x = last_point.x - p[0].x;
+            double y = last_point.y - p[0].y;
             m.move (-x * speed, y * speed);
         }
         last_point = p[0];
