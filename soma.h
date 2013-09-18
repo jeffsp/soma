@@ -139,13 +139,40 @@ const size_t FVN =
     + 4 * 1 // 4 between distances
     + 4 * 3; // 4 between directions
 
-class feature_vector : public std::array<double,FVN>
+struct finger
+{
+    Leap::Vector position;
+    Leap::Vector velocity;
+    Leap::Vector direction;
+};
+
+Leap::Vector noisy_default_position ()
+{
+    Leap::Vector v;
+    v.x = (rand () * 2.0) / RAND_MAX - 1.0;
+    v.y = (rand () * 2.0) / RAND_MAX - 1.0;
+    v.z = (rand () * 2.0) / RAND_MAX - 1.0;
+    return v;
+}
+
+Leap::Vector noisy_default_velocity ()
+{
+    Leap::Vector v = noisy_default_position ();
+    return v;
+}
+
+Leap::Vector noisy_default_direction ()
+{
+    Leap::Vector v = noisy_default_position ();
+    // make it point down
+    v.y += -100;
+    return v.normalized ();
+}
+
+class hand : public std::array<finger, 5>
 {
     public:
-    feature_vector ()
-    {
-    }
-    feature_vector (const Leap::PointableList &pl)
+    hand (const Leap::PointableList &pl)
     {
         // only use at most 5 pointables
         std::vector<Leap::Pointable> p (std::min (pl.count (), 5));
@@ -155,34 +182,67 @@ class feature_vector : public std::array<double,FVN>
             p[i] = pl[i];
         // sort
         sort (p.begin (), p.end (), sort_left_to_right);
+        // a hand always has five fingers
+        // if a finger was not detected, fill it with some default values
+        for (size_t i = 0; i < 5; ++i)
+        {
+            if (i < p.size ())
+            {
+                data ()[i].position = p[i].tipPosition ();
+                data ()[i].velocity = p[i].tipVelocity ();
+                data ()[i].direction = p[i].direction ();
+            }
+            else
+            {
+                data ()[i].position = noisy_default_position ();
+                data ()[i].velocity = noisy_default_velocity ();
+                data ()[i].direction = noisy_default_direction ();
+            }
+        }
+    }
+};
+
+class feature_vector : public std::array<double,FVN>
+{
+    public:
+    feature_vector ()
+    {
+    }
+    feature_vector (const hand &h)
+    {
         // stuff them into the vector
         size_t i = 0;
         for (size_t j = 0; j < 5; ++j)
         {
             assert (i < size ());
-            data ()[i++] = j < p.size () ? p[j].tipVelocity ().x : 0.0;
-            data ()[i++] = j < p.size () ? p[j].tipVelocity ().y : 0.0;
-            data ()[i++] = j < p.size () ? p[j].tipVelocity ().z : 0.0;
+            assert (j < h.size ());
+            data ()[i++] = h[j].velocity.x;
+            data ()[i++] = h[j].velocity.y;
+            data ()[i++] = h[j].velocity.z;
         }
         for (size_t j = 0; j < 5; ++j)
         {
             assert (i < size ());
-            data ()[i++] = j < p.size () ? p[j].direction ().x : 0.0;
-            data ()[i++] = j < p.size () ? p[j].direction ().y : 0.0;
-            data ()[i++] = j < p.size () ? p[j].direction ().z : 0.0;
+            assert (j < h.size ());
+            data ()[i++] = h[j].direction.x;
+            data ()[i++] = h[j].direction.y;
+            data ()[i++] = h[j].direction.z;
         }
         for (size_t j = 0; j < 4; ++j)
         {
             assert (i < size ());
-            data ()[i++] = j + 1 < p.size () ? p[j].tipPosition ().distanceTo (p[j + 1].tipPosition ()) : 0.0;
+            assert (j + 1 < h.size ());
+            float d = h[j].position.distanceTo (h[j + 1].position);
+            data ()[i++] = d;
         }
         for (size_t j = 0; j < 4; ++j)
         {
             assert (i < size ());
-            Leap::Vector dir = j + 1 < p.size () ? p[j].tipPosition () - p[j + 1].tipPosition () : Leap::Vector ();
-            data ()[i++] = j + 1 < p.size () ? dir.x : 0.0;
-            data ()[i++] = j + 1 < p.size () ? dir.y : 0.0;
-            data ()[i++] = j + 1 < p.size () ? dir.z : 0.0;
+            assert (j + 1 < h.size ());
+            Leap::Vector dir = h[j].position - h[j + 1].position;
+            data ()[i++] = dir.x;
+            data ()[i++] = dir.y;
+            data ()[i++] = dir.z;
         }
         assert (i == size ());
     }
