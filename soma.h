@@ -21,6 +21,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include "stats.h"
 #include "Leap.h"
 
 namespace soma
@@ -128,143 +129,139 @@ class sliding_time_window
     }
 };
 
-bool sort_left_to_right (const Leap::Pointable &a, const Leap::Pointable &b)
+struct finger_sample
 {
-    return a.tipPosition ().x < b.tipPosition ().x;
-}
-
-const size_t FVN =
-      5 * 3 // 5 tip velocities
-    + 5 * 3 // 5 tip directions
-    + 4 * 1 // 4 between distances
-    + 4 * 3; // 4 between directions
-
-struct finger
-{
+    int32_t id;
     Leap::Vector position;
     Leap::Vector velocity;
     Leap::Vector direction;
+    finger_sample ()
+        : id (std::numeric_limits<uint32_t>::max ())
+    {
+    }
 };
 
-Leap::Vector noisy_default_position ()
+bool sort_by_id (const finger_sample &a, const finger_sample &b)
 {
-    Leap::Vector v;
-    v.x = (rand () * 2.0) / RAND_MAX - 1.0;
-    v.y = (rand () * 2.0) / RAND_MAX - 1.0;
-    v.z = (rand () * 2.0) / RAND_MAX - 1.0;
-    return v;
+    return a.id < b.id;
 }
 
-Leap::Vector noisy_default_velocity ()
-{
-    Leap::Vector v = noisy_default_position ();
-    return v;
-}
-
-Leap::Vector noisy_default_direction ()
-{
-    Leap::Vector v = noisy_default_position ();
-    // make it point down
-    v.y += -100;
-    return v.normalized ();
-}
-
-class hand : public std::array<finger, 5>
+class hand_sample : public std::vector<finger_sample>
 {
     public:
-    hand (const Leap::PointableList &pl)
+    hand_sample (const Leap::PointableList &pl)
     {
-        // only use at most 5 pointables
-        std::vector<Leap::Pointable> p (std::min (pl.count (), 5));
-        // get vector of pointables.  unfortunately, the [] operator returns a copy of the pointable, not a reference,
-        // so we are forced to sort copies of the objects rather than sorting pointers to the objects.
-        for (size_t i = 0; i < p.size (); ++i)
-            p[i] = pl[i];
-        // sort
-        sort (p.begin (), p.end (), sort_left_to_right);
-        // a hand always has five fingers
-        // if a finger was not detected, fill it with some default values
-        for (size_t i = 0; i < 5; ++i)
+        // get the relevant info from the list
+        for (int i = 0; i < pl.count () && i < 5; ++i)
         {
-            if (i < p.size ())
-            {
-                data ()[i].position = p[i].tipPosition ();
-                data ()[i].velocity = p[i].tipVelocity ();
-                data ()[i].direction = p[i].direction ();
-            }
-            else
-            {
-                data ()[i].position = noisy_default_position ();
-                data ()[i].velocity = noisy_default_velocity ();
-                data ()[i].direction = noisy_default_direction ();
-            }
+            data ()[i].id = pl[i].id ();
+            data ()[i].position = pl[i].tipPosition ();
+            data ()[i].velocity = pl[i].tipVelocity ();
+            data ()[i].direction = pl[i].direction ();
         }
+        // sort by id
+        std::sort (begin (), end (), sort_by_id);
     }
 };
 
-class feature_vector : public std::array<double,FVN>
+typedef std::vector<hand_sample> hand_samples;
+
+hand_samples filter_nfingers (const hand_samples &s)
+{
+    if (s.empty ())
+        return s;
+    // get the mode of the number of fingers
+    std::vector<size_t> x (s.size ());
+    for (size_t i = 0; i < x.size (); ++i)
+        x[i] = s[i].size ();
+    size_t nf = mode (x);
+    // build new vector containing only ones with correct number
+    hand_samples r;
+    for (auto i : s)
+        if (s.size () == nf)
+            r.push_back (i);
+    return r;
+}
+
+hand_samples filter_finger_ids (const hand_samples &s)
+{
+    if (s.empty ())
+        return s;
+    // how many fingers are there?
+    size_t n = s[0].size ();
+    std::vector<std::vector<int32_t>> ids (n);
+    for (auto i : s)
+    {
+        // each hand sample should have the same number of fingers
+        assert (i.size () == n);
+        for (size_t j = 0; j < n; ++j)
+            ids[j].push_back (i[j].id);
+    }
+    // get the mode of each id
+    std::vector<int32_t> m (n);
+    for (size_t j = 0; j < n; ++j)
+        m[j] = mode (ids[j]);
+    // build new vector containing only ones with correct ids
+    hand_samples r;
+    for (auto i : s)
+    {
+        bool good = true;
+        for (size_t j = 0; j < n; ++j)
+        {
+            if (i[j].id != m[j])
+            {
+                good = false;
+                break;
+            }
+        }
+        if (good)
+            r.push_back (i);
+    }
+    return r;
+}
+
+hand_samples filter (const hand_samples &s)
+{
+    // filter by mode of number of fingers
+    hand_samples r = filter_nfingers (s);
+    // filter by finger ids
+    r = filter_finger_ids (r);
+    return r;
+}
+
+class hand_shape_feature_vector : public std::vector<double>
 {
     public:
-    feature_vector ()
+    hand_shape_feature_vector (const hand_sample &h)
     {
+        push_back (h.size ());
+        for (size_t i = 0; i < h.size (); ++i)
+        {
+            push_back (h[i].direction.x);
+            push_back (h[i].direction.y);
+            push_back (h[i].direction.z);
+            if (i + 1 < h.size ())
+            {
+                float dist = h[i].position.distanceTo (h[i + 1].position);
+                push_back (dist);
+                Leap::Vector dir = h[i].position - h[i + 1].position;
+                push_back (dir.x);
+                push_back (dir.y);
+                push_back (dir.z);
+            }
+        }
     }
-    feature_vector (const hand &h)
+    static size_t dimensions (size_t fingers)
     {
-        // stuff them into the vector
-        size_t i = 0;
-        for (size_t j = 0; j < 5; ++j)
-        {
-            assert (i < size ());
-            assert (j < h.size ());
-            data ()[i++] = h[j].velocity.x;
-            data ()[i++] = h[j].velocity.y;
-            data ()[i++] = h[j].velocity.z;
-        }
-        for (size_t j = 0; j < 5; ++j)
-        {
-            assert (i < size ());
-            assert (j < h.size ());
-            data ()[i++] = h[j].direction.x;
-            data ()[i++] = h[j].direction.y;
-            data ()[i++] = h[j].direction.z;
-        }
-        for (size_t j = 0; j < 4; ++j)
-        {
-            assert (i < size ());
-            assert (j + 1 < h.size ());
-            float d = h[j].position.distanceTo (h[j + 1].position);
-            data ()[i++] = d;
-        }
-        for (size_t j = 0; j < 4; ++j)
-        {
-            assert (i < size ());
-            assert (j + 1 < h.size ());
-            Leap::Vector dir = h[j].position - h[j + 1].position;
-            data ()[i++] = dir.x;
-            data ()[i++] = dir.y;
-            data ()[i++] = dir.z;
-        }
-        assert (i == size ());
+        assert (fingers > 0);
+        return 1 + fingers * 3 + (fingers - 1) * 4;
     }
 };
-
-feature_vector zero_movement (const feature_vector &f)
-{
-    feature_vector z (f);
-    size_t i = 0;
-    for (size_t j = 0; j < 5; ++j)
-    {
-        z[i++] = 0.0;
-        z[i++] = 0.0;
-        z[i++] = 0.0;
-    }
-    return z;
-}
 
 typedef std::vector<uint64_t> timestamps;
-typedef std::vector<feature_vector> feature_vectors;
+typedef std::vector<hand_shape_feature_vector> hand_shape_feature_vectors;
 
-enum class hand_position
+enum class hand_shape
 {
     unknown,
     pointing,
@@ -273,88 +270,100 @@ enum class hand_position
     centering
 };
 
-std::string to_string (const hand_position hp)
+std::string to_string (const hand_shape hs)
 {
-    switch (hp)
+    switch (hs)
     {
         default:
         throw std::runtime_error ("invalid hand position");
-        case hand_position::unknown:
+        case hand_shape::unknown:
         return std::string ("unknown");
-        case hand_position::pointing:
+        case hand_shape::pointing:
         return std::string ("pointing");
-        case hand_position::clicking:
+        case hand_shape::clicking:
         return std::string ("clicking");
-        case hand_position::scrolling:
+        case hand_shape::scrolling:
         return std::string ("scrolling");
-        case hand_position::centering:
+        case hand_shape::centering:
         return std::string ("centering");
     }
 }
 
-template<typename T,size_t N>
 class stats
 {
     private:
     size_t total;
-    std::array<T,N> u1;
-    std::array<T,N> u2;
+    double u1;
+    double u2;
     public:
-    template<typename A>
-    void update (const A &v)
+    void update (const double v)
     {
-        assert (v.size () == u1.size ());
-        assert (v.size () == u2.size ());
         ++total;
-        for (size_t i = 0; i < v.size (); ++i)
-        {
-            u1[i] += v[i];
-            u2[i] += v[i] * v[i];
-        }
+        u1 += v;
+        u2 += v * v;
     }
-    double mean (size_t i) const
+    double mean () const
     {
-        return static_cast<double> (u1[i]) / total;
+        return u1 / total;
     }
-    double variance (size_t i) const
+    double variance () const
     {
-        double u = mean (i);
-        assert (static_cast<double> (u2[i]) / total >= u * u);
-        return static_cast<double> (u2[i]) / total - u * u;
+        double u = mean ();
+        assert (u2 / total >= u * u);
+        return u2 / total - u * u;
     }
 };
 
-class hand_position_classifier
+class hand_shape_classifier
 {
     private:
-    std::map<hand_position,stats<double,FVN>> mhps;
+    typedef std::map<hand_shape,std::vector<stats>> map_hand_shape_stats;
+    std::vector<map_hand_shape_stats> hss;
     public:
-    hand_position_classifier ()
+    hand_shape_classifier ()
+        : hss (5)
     {
-    }
-    void update (const hand_position hp, const feature_vectors &fvs)
-    {
-        for (auto i : fvs)
-            mhps[hp].update (zero_movement (i));
-        for (auto s : mhps)
+        // for each number of fingers
+        for (size_t i = 0; i < 5; ++i)
         {
-            std::clog << to_string (s.first) << std::endl;
-            for (size_t j = 0; j < FVN; ++j)
+            // for each hand shape
+            std::vector<hand_shape> vhs { hand_shape::pointing, hand_shape::clicking, hand_shape::scrolling, hand_shape::centering };
+            for (auto hs : vhs)
             {
-                double m = s.second.mean (j); // mean of dimension's dist
-                double v = s.second.variance (j); // var of dimension's dist
-                std::clog << j << ' ' << m << ' ' << sqrt (v) << std::endl;
+                // resize the vector of stats to the number of dimensions
+                hss[i][hs].resize (hand_shape_feature_vector::dimensions (i + 1));
             }
         }
     }
-    void classify (const feature_vectors &fvs, const timestamps &ts, hand_position &hp, double &p) const
+    void update (const hand_shape hs, const hand_shape_feature_vectors &h)
     {
-        std::map<hand_position,double> l;
+        for (auto s : h)
+        {
+            // first dimension always contains the number of fingers
+            size_t fingers = s[0];
+            assert (fingers < hss.size ());
+            auto &v = hss[fingers][hs];
+            assert (s.size () == v.size ());
+            for (size_t i = 0; i < s.size (); ++i)
+            {
+                v[i].update (s[i]);
+                double m = v[i].mean ();
+                double s = v[i].variance ();
+                std::clog << i << ' ' << m << ' ' << sqrt (s) << std::endl;
+            }
+        }
+    }
+    void classify (const hand_shape_feature_vectors &fvs, const timestamps &ts, hand_shape &hs, double &p) const
+    {
+        hs = hand_shape::unknown;
+        p = 0.0;
+        /*
+        std::map<hand_shape,double> l;
         for (auto h : {
-            hand_position::pointing,
-            hand_position::clicking,
-            hand_position::scrolling,
-            hand_position::centering })
+            hand_shape::pointing,
+            hand_shape::clicking,
+            hand_shape::scrolling,
+            hand_shape::centering })
         {
             for (auto i : fvs)
             {
@@ -363,8 +372,8 @@ class hand_position_classifier
                 {
                     // get p for this feature vector dimension
                     double x = z[j]; // feature dimension value
-                    auto s = mhps.find (h);
-                    assert (s != mhps.end ());
+                    auto s = mhss.find (h);
+                    assert (s != mhss.end ());
                     double m = s->second.mean (j); // mean of dimension's dist
                     double v = s->second.variance (j); // var of dimension's dist
                     // update log likelihood
@@ -374,7 +383,7 @@ class hand_position_classifier
             }
         }
         double best_value = std::numeric_limits<int>::min ();
-        hand_position best_hp = hand_position::unknown;
+        hand_shape best_hs = hand_shaphand_shape
         for (auto i : l)
         {
             std::clog
@@ -384,33 +393,13 @@ class hand_position_classifier
                 << std::endl;
             if (i.second > best_value)
             {
-                best_hp = i.first;
+                best_hs = i.first;
                 best_value = i.second;
             }
         }
-        hp = best_hp;
+        hs = best_hs;
         p = best_value;
-    }
-};
-
-enum class hand_movement
-{
-    unknown,
-    still,
-    moving,
-    clicking,
-    right_clicking
-};
-
-class hand_movement_classifier
-{
-    private:
-    static const uint64_t FEATURE_WINDOW_DURATION = 500000;
-    sliding_time_window<feature_vector> w;
-    public:
-    hand_movement_classifier ()
-        : w (FEATURE_WINDOW_DURATION)
-    {
+        */
     }
 };
 

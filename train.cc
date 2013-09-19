@@ -10,15 +10,17 @@ using namespace std;
 using namespace soma;
 const string usage = "usage: train";
 
-class frame_grabber : public Leap::Listener
+typedef vector<hand_sample> hand_samples;
+
+class hand_sample_grabber : public Leap::Listener
 {
     private:
     bool on;
     uint64_t max_time;
     timestamps ts;
-    feature_vectors fvs;
+    hand_samples hs;
     public:
-    frame_grabber ()
+    hand_sample_grabber ()
         : on (false)
         , max_time (0)
     {
@@ -31,14 +33,14 @@ class frame_grabber : public Leap::Listener
         // get the frame
         Leap::Frame f = c.frame ();
         // save the frame info
-        fvs.push_back (feature_vector (f.pointables ()));
+        hs.push_back (hand_sample (f.pointables ()));
         ts.push_back (f.timestamp ());
         if (ts.back () - ts.front () >= max_time)
             on = false;
     }
-    const feature_vectors &get_feature_vectors ()
+    const hand_samples &get_hand_samples ()
     {
-        return fvs;
+        return hs;
     }
     const timestamps &get_timestamps ()
     {
@@ -48,7 +50,7 @@ class frame_grabber : public Leap::Listener
     {
         assert (!on);
         // start with no frames
-        fvs.clear ();
+        hs.clear ();
         ts.clear ();
         // set the time
         max_time = usec;
@@ -60,45 +62,59 @@ class frame_grabber : public Leap::Listener
     }
 };
 
-void train (frame_grabber &fg, hand_position_classifier &hpc, const hand_position hp)
+void train (hand_sample_grabber &g, hand_shape_classifier &hsc, const hand_shape hs)
 {
     const uint64_t SAMPLE_DURATION = 10000000;
     // display hand position
-    string hps = to_string (hp);
-    std::transform (hps.begin(), hps.end(), hps.begin(), ::toupper);
-    clog << "training hand position " << hps << endl;
+    string hss = to_string (hs);
+    std::transform (hss.begin(), hss.end(), hss.begin(), ::toupper);
+    clog << "training hand position " << hss << endl;
     // continue after user input
     clog << "press enter" << endl;
     string str;
     getline (cin, str);
     clog << "getting feature vectors... ";
-    // grab some vectors
-    fg.grab (SAMPLE_DURATION);
-    feature_vectors fvs = fg.get_feature_vectors ();
-    clog << "got " << fvs.size () << " samples" << endl;
+    // grab some samples
+    g.grab (SAMPLE_DURATION);
+    hand_samples s = g.get_hand_samples ();
+    clog << "got " << s.size () << " samples" << endl;
+    // filter out bad samples
+    hand_samples fs = filter (s);
+    assert (fs.size () <= s.size ());
+    const size_t nf = s.size () - fs.size ();
+    clog << "filtered out " << nf << " samples" << endl;
+    // make sure they are reliable samples
+    if (100 * nf / s.size () > 75)
+        throw runtime_error ("filtered out too many samples");
+    // convert them to feature vectors
+    hand_shape_feature_vectors fv (fs.begin (), fs.end ());
     // record them
-    hpc.update (hp, fvs);
+    hsc.update (hs, fv);
 }
 
-void classify (frame_grabber &fg, const hand_position_classifier &hpc)
+void classify (hand_sample_grabber &g, const hand_shape_classifier &hsc)
 {
     const uint64_t SAMPLE_DURATION = 100000;
     while (1)
     {
         // get some frames
-        fg.grab (SAMPLE_DURATION);
-        feature_vectors fvs = fg.get_feature_vectors ();
-        timestamps ts = fg.get_timestamps ();
-        assert (!fvs.empty ());
-        assert (fvs.size () == ts.size ());
+        g.grab (SAMPLE_DURATION);
+        hand_samples s = g.get_hand_samples ();
+        timestamps ts = g.get_timestamps ();
+        assert (!s.empty ());
+        assert (s.size () == ts.size ());
+        // filter out bad samples
+        hand_samples fs = filter (s);
+        // convert them to feature vectors
+        hand_shape_feature_vectors fv (fs.begin (), fs.end ());
         // classify them
-        hand_position hp;
+        hand_shape hs;
         double p;
-        hpc.classify (fvs, ts, hp, p);
+        hsc.classify (fv, ts, hs, p);
         // show the class you got and its likelihood
-        string hps = to_string (hp);
-        std::transform (hps.begin(), hps.end(), hps.begin(), ::toupper);
-        clog << "class = " << hps << " (" << p << ")" << endl;
+        string hss = to_string (hs);
+        std::transform (hss.begin(), hss.end(), hss.begin(), ::toupper);
+        clog << "class = " << hss << " (" << p << ")" << endl;
     }
 }
 
@@ -109,21 +125,21 @@ int main (int argc, char **argv)
         if (argc != 1)
             throw runtime_error (usage);
 
-        frame_grabber fg;
-        Leap::Controller c (fg);
-        hand_position_classifier hpc;
+        hand_sample_grabber g;
+        Leap::Controller c (g);
+        hand_shape_classifier hsc;
 
         const size_t PASSES = 1;
         for (size_t pass = 0; pass < PASSES; ++pass)
         {
             clog << "pass " << pass << endl;
 
-            vector<hand_position> vhp { hand_position::pointing, hand_position::clicking, hand_position::scrolling, hand_position::centering };
-            for (auto hp : vhp)
-                train (fg, hpc, hp);
+            vector<hand_shape> vhs { hand_shape::pointing, hand_shape::clicking, hand_shape::scrolling, hand_shape::centering };
+            for (auto hs : vhs)
+                train (g, hsc, hs);
         }
 
-        classify (fg, hpc);
+        classify (g, hsc);
 
         return 0;
     }
