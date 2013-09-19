@@ -151,6 +151,7 @@ class hand_sample : public std::vector<finger_sample>
     public:
     hand_sample (const Leap::PointableList &pl)
     {
+        resize (pl.count ());
         // get the relevant info from the list
         for (int i = 0; i < pl.count () && i < 5; ++i)
         {
@@ -175,10 +176,11 @@ hand_samples filter_nfingers (const hand_samples &s)
     for (size_t i = 0; i < x.size (); ++i)
         x[i] = s[i].size ();
     size_t nf = mode (x);
+    std::clog << "mode of number of fingers " << nf << std::endl;
     // build new vector containing only ones with correct number
     hand_samples r;
     for (auto i : s)
-        if (s.size () == nf)
+        if (i.size () == nf)
             r.push_back (i);
     return r;
 }
@@ -200,7 +202,10 @@ hand_samples filter_finger_ids (const hand_samples &s)
     // get the mode of each id
     std::vector<int32_t> m (n);
     for (size_t j = 0; j < n; ++j)
+    {
         m[j] = mode (ids[j]);
+        std::clog << "mode of id[" << j << "] is " << m[j] << std::endl;
+    }
     // build new vector containing only ones with correct ids
     hand_samples r;
     for (auto i : s)
@@ -304,11 +309,16 @@ class stats
     }
     double mean () const
     {
+        if (total == 0)
+            return 0.0;
         return u1 / total;
     }
     double variance () const
     {
+        if (total == 0)
+            return 0.0;
         double u = mean ();
+        //std::clog << total << ' ' << u2 / total << ' ' << u * u << std::endl;
         assert (u2 / total >= u * u);
         return u2 / total - u * u;
     }
@@ -335,55 +345,66 @@ class hand_shape_classifier
             }
         }
     }
-    void update (const hand_shape hs, const hand_shape_feature_vectors &h)
+    void update (const hand_shape hs, const hand_shape_feature_vectors &hsfvs)
     {
-        for (auto s : h)
+        for (auto s : hsfvs)
         {
             // first dimension always contains the number of fingers
-            size_t fingers = s[0];
-            assert (fingers < hss.size ());
-            auto &v = hss[fingers][hs];
+            const size_t fingers = s[0];
+            // if there are no fingers detected, there is nothing to do
+            if (fingers == 0)
+                return;
+            const size_t map_index = fingers - 1;
+            assert (map_index < hss.size ());
+            auto &v = hss[map_index][hs];
+            //std::clog << "hand shape feature vector dimensions " << s.size () << std::endl;
+            //std::clog << "hand shape stats vector dimensions " << v.size () << std::endl;
             assert (s.size () == v.size ());
             for (size_t i = 0; i < s.size (); ++i)
             {
                 v[i].update (s[i]);
-                double m = v[i].mean ();
-                double s = v[i].variance ();
-                std::clog << i << ' ' << m << ' ' << sqrt (s) << std::endl;
+                //double m = v[i].mean ();
+                //double s = v[i].variance ();
+                //std::clog << i << ' ' << m << ' ' << sqrt (s) << std::endl;
             }
         }
     }
-    void classify (const hand_shape_feature_vectors &fvs, const timestamps &ts, hand_shape &hs, double &p) const
+    void classify (const hand_shape_feature_vectors &hsfvs, const timestamps &ts, hand_shape &hs, double &p) const
     {
         hs = hand_shape::unknown;
         p = 0.0;
-        /*
         std::map<hand_shape,double> l;
-        for (auto h : {
+        for (auto hs : {
             hand_shape::pointing,
             hand_shape::clicking,
             hand_shape::scrolling,
             hand_shape::centering })
         {
-            for (auto i : fvs)
+            for (auto s : hsfvs)
             {
-                auto z = zero_movement (i);
-                for (size_t j = 0; j < z.size (); ++j)
+                // first dimension always contains the number of fingers
+                const size_t fingers = s[0];
+                // if there are no fingers detected, there is nothing to do
+                if (fingers == 0)
+                    return;
+                const size_t map_index = fingers - 1;
+                assert (map_index < hss.size ());
+                auto v = hss[map_index].find (hs);
+                assert (v != hss[map_index].end ());
+                assert (s.size () == v->second.size ());
+                for (size_t i = 0; i < s.size (); ++i)
                 {
-                    // get p for this feature vector dimension
-                    double x = z[j]; // feature dimension value
-                    auto s = mhss.find (h);
-                    assert (s != mhss.end ());
-                    double m = s->second.mean (j); // mean of dimension's dist
-                    double v = s->second.variance (j); // var of dimension's dist
+                    const double x = s[i]; // feature dimension value
+                    double m = v->second[i].mean (); // mean of dimension's dist
+                    double s = v->second[i].variance ();
                     // update log likelihood
-                    if (v != 0.0f)
-                        l[h] -= (x - m) * (x - m) / (2 * v);
+                    if (s != 0.0f)
+                        l[hs] -= (x - m) * (x - m) / (2 * s);
                 }
             }
         }
         double best_value = std::numeric_limits<int>::min ();
-        hand_shape best_hs = hand_shaphand_shape
+        hand_shape best_hs = hand_shape::unknown;
         for (auto i : l)
         {
             std::clog
@@ -399,7 +420,6 @@ class hand_shape_classifier
         }
         hs = best_hs;
         p = best_value;
-        */
     }
 };
 

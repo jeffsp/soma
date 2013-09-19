@@ -64,7 +64,7 @@ class hand_sample_grabber : public Leap::Listener
 
 void train (hand_sample_grabber &g, hand_shape_classifier &hsc, const hand_shape hs)
 {
-    const uint64_t SAMPLE_DURATION = 10000000;
+    const uint64_t SAMPLE_DURATION = 1000000;
     // display hand position
     string hss = to_string (hs);
     std::transform (hss.begin(), hss.end(), hss.begin(), ::toupper);
@@ -105,6 +105,8 @@ void classify (hand_sample_grabber &g, const hand_shape_classifier &hsc)
         assert (s.size () == ts.size ());
         // filter out bad samples
         hand_samples fs = filter (s);
+        const size_t nf = s.size () - fs.size ();
+        clog << "filtered out " << nf << " samples" << endl;
         // convert them to feature vectors
         hand_shape_feature_vectors fv (fs.begin (), fs.end ());
         // classify them
