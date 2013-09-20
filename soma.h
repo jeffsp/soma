@@ -167,7 +167,7 @@ class hand_sample : public std::vector<finger_sample>
 
 typedef std::vector<hand_sample> hand_samples;
 
-hand_samples filter_nfingers (const hand_samples &s)
+hand_samples filter_by_num_fingers (const hand_samples &s)
 {
     if (s.empty ())
         return s;
@@ -176,7 +176,7 @@ hand_samples filter_nfingers (const hand_samples &s)
     for (size_t i = 0; i < x.size (); ++i)
         x[i] = s[i].size ();
     size_t nf = mode (x);
-    std::clog << "mode of number of fingers " << nf << std::endl;
+    //std::clog << "mode of number of fingers " << nf << std::endl;
     // build new vector containing only ones with correct number
     hand_samples r;
     for (auto i : s)
@@ -185,7 +185,7 @@ hand_samples filter_nfingers (const hand_samples &s)
     return r;
 }
 
-hand_samples filter_finger_ids (const hand_samples &s)
+hand_samples filter_by_finder_ids (const hand_samples &s)
 {
     if (s.empty ())
         return s;
@@ -204,7 +204,7 @@ hand_samples filter_finger_ids (const hand_samples &s)
     for (size_t j = 0; j < n; ++j)
     {
         m[j] = mode (ids[j]);
-        std::clog << "mode of id[" << j << "] is " << m[j] << std::endl;
+        //std::clog << "mode of id[" << j << "] is " << m[j] << std::endl;
     }
     // build new vector containing only ones with correct ids
     hand_samples r;
@@ -228,9 +228,9 @@ hand_samples filter_finger_ids (const hand_samples &s)
 hand_samples filter (const hand_samples &s)
 {
     // filter by mode of number of fingers
-    hand_samples r = filter_nfingers (s);
+    hand_samples r = filter_by_num_fingers (s);
     // filter by finger ids
-    r = filter_finger_ids (r);
+    r = filter_by_finder_ids (r);
     return r;
 }
 
@@ -324,6 +324,8 @@ class stats
     }
 };
 
+const std::vector<hand_shape> hand_shapes { hand_shape::pointing, hand_shape::clicking, hand_shape::scrolling, hand_shape::centering };
+
 class hand_shape_classifier
 {
     private:
@@ -337,8 +339,7 @@ class hand_shape_classifier
         for (size_t i = 0; i < 5; ++i)
         {
             // for each hand shape
-            std::vector<hand_shape> vhs { hand_shape::pointing, hand_shape::clicking, hand_shape::scrolling, hand_shape::centering };
-            for (auto hs : vhs)
+            for (auto hs : hand_shapes)
             {
                 // resize the vector of stats to the number of dimensions
                 hss[i][hs].resize (hand_shape_feature_vector::dimensions (i + 1));
@@ -363,23 +364,17 @@ class hand_shape_classifier
             for (size_t i = 0; i < s.size (); ++i)
             {
                 v[i].update (s[i]);
-                //double m = v[i].mean ();
-                //double s = v[i].variance ();
-                //std::clog << i << ' ' << m << ' ' << sqrt (s) << std::endl;
+                double m = v[i].mean ();
+                double s = v[i].variance ();
+                std::clog << i << ' ' << m << ' ' << sqrt (s) << std::endl;
             }
         }
     }
-    void classify (const hand_shape_feature_vectors &hsfvs, const timestamps &ts, hand_shape &hs, double &p) const
+    void classify (const hand_shape_feature_vectors &hsfvs, const timestamps &ts, std::map<hand_shape,double> &l) const
     {
-        hs = hand_shape::unknown;
-        p = 0.0;
-        std::map<hand_shape,double> l;
-        for (auto hs : {
-            hand_shape::pointing,
-            hand_shape::clicking,
-            hand_shape::scrolling,
-            hand_shape::centering })
+        for (auto hs : hand_shapes)
         {
+            size_t total = 0;
             for (auto s : hsfvs)
             {
                 // first dimension always contains the number of fingers
@@ -395,31 +390,18 @@ class hand_shape_classifier
                 for (size_t i = 0; i < s.size (); ++i)
                 {
                     const double x = s[i]; // feature dimension value
-                    double m = v->second[i].mean (); // mean of dimension's dist
-                    double s = v->second[i].variance ();
-                    // update log likelihood
-                    if (s != 0.0f)
+                    const double m = v->second[i].mean ();
+                    const double s = v->second[i].variance ();
+                    if (s != 0.0)
+                    {
+                        // update log likelihood
                         l[hs] -= (x - m) * (x - m) / (2 * s);
+                        ++total;
+                    }
                 }
             }
+            l[hs] /= total;
         }
-        double best_value = std::numeric_limits<int>::min ();
-        hand_shape best_hs = hand_shape::unknown;
-        for (auto i : l)
-        {
-            std::clog
-                << to_string (i.first)
-                << " = "
-                << i.second
-                << std::endl;
-            if (i.second > best_value)
-            {
-                best_hs = i.first;
-                best_value = i.second;
-            }
-        }
-        hs = best_hs;
-        p = best_value;
     }
 };
 
