@@ -146,6 +146,7 @@ bool sort_by_id (const finger_sample &a, const finger_sample &b)
     return a.id < b.id;
 }
 
+
 class hand_sample : public std::vector<finger_sample>
 {
     public:
@@ -185,7 +186,7 @@ hand_samples filter_by_num_fingers (const hand_samples &s)
     return r;
 }
 
-hand_samples filter_by_finder_ids (const hand_samples &s)
+hand_samples filter_by_finger_ids (const hand_samples &s)
 {
     if (s.empty ())
         return s;
@@ -230,7 +231,7 @@ hand_samples filter (const hand_samples &s)
     // filter by mode of number of fingers
     hand_samples r = filter_by_num_fingers (s);
     // filter by finger ids
-    r = filter_by_finder_ids (r);
+    r = filter_by_finger_ids (r);
     return r;
 }
 
