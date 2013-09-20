@@ -146,6 +146,10 @@ bool sort_by_id (const finger_sample &a, const finger_sample &b)
     return a.id < b.id;
 }
 
+bool sort_left_to_right (const finger_sample &a, const finger_sample &b)
+{
+    return a.position.x < b.position.x;
+}
 
 class hand_sample : public std::vector<finger_sample>
 {
@@ -161,8 +165,8 @@ class hand_sample : public std::vector<finger_sample>
             data ()[i].velocity = pl[i].tipVelocity ();
             data ()[i].direction = pl[i].direction ();
         }
-        // sort by id
-        std::sort (begin (), end (), sort_by_id);
+        // sort by x position
+        std::sort (begin (), end (), sort_left_to_right);
     }
 };
 
