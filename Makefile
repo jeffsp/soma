@@ -2,7 +2,9 @@ all:
 	waf configure
 	waf
 
-run: train
+run: all
+	./build/debug/train > training.dat
+	./build/debug/classify < training.dat
 
 mouse: all
 	./build/debug/soma_mouse
@@ -12,6 +14,3 @@ check: all
 
 dump: all
 	./build/debug/dump_samples 1 > /dev/null
-
-train: all
-	./build/debug/train
