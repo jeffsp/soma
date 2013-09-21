@@ -303,29 +303,62 @@ class stats
 {
     private:
     size_t total;
-    double u1;
-    double u2;
+    std::vector<double> u1;
+    std::vector<double> u2;
     public:
-    void update (const double v)
+    void resize (size_t n)
     {
+        u1.resize (n);
+        u2.resize (n);
+    }
+    size_t size () const
+    {
+        assert (u1.size () == u2.size ());
+        return u1.size ();
+    }
+    void update (size_t i, const double v)
+    {
+        assert (i < u1.size ());
+        assert (u1.size () == u2.size ());
         ++total;
-        u1 += v;
-        u2 += v * v;
+        u1[i] += v;
+        u2[i] += v * v;
     }
-    double mean () const
+    double mean (size_t i) const
     {
+        assert (i < u1.size ());
         if (total == 0)
             return 0.0;
-        return u1 / total;
+        return u1[i] / total;
     }
-    double variance () const
+    double variance (size_t i) const
     {
+        assert (i < u2.size ());
         if (total == 0)
             return 0.0;
-        double u = mean ();
-        //std::clog << total << ' ' << u2 / total << ' ' << u * u << std::endl;
-        assert (u2 / total >= u * u);
-        return u2 / total - u * u;
+        double u = mean (i);
+        assert (u2[i] / total >= u * u);
+        return u2[i] / total - u * u;
+    }
+    friend std::ostream& operator<< (std::ostream &s, const stats &x)
+    {
+        s << x.total << std::endl;
+        assert (x.u1.size () == x.u2.size ());
+        s << x.u1.size () << std::endl;
+        s.precision (12);
+        for (size_t i = 0; i < x.u1.size (); ++i)
+            s << ' ' << x.u1[i] << ' ' << x.u2[i];
+        return s;
+    }
+    friend std::istream& operator>> (std::istream &s, stats &x)
+    {
+        s >> x.total;
+        size_t n;
+        s >> n;
+        x.resize (n);
+        for (size_t i = 0; i < x.u1.size (); ++i)
+            s >> x.u1[i] >> x.u2[i];
+        return s;
     }
 };
 
@@ -334,22 +367,18 @@ const std::vector<hand_shape> hand_shapes { hand_shape::pointing, hand_shape::cl
 class hand_shape_classifier
 {
     private:
-    typedef std::map<hand_shape,std::vector<stats>> map_hand_shape_stats;
+    typedef std::map<hand_shape,stats> map_hand_shape_stats;
     std::vector<map_hand_shape_stats> hss;
     public:
     hand_shape_classifier ()
         : hss (5)
     {
         // for each number of fingers
-        for (size_t i = 0; i < 5; ++i)
-        {
+        for (size_t i = 0; i < hss.size (); ++i)
             // for each hand shape
             for (auto hs : hand_shapes)
-            {
                 // resize the vector of stats to the number of dimensions
                 hss[i][hs].resize (hand_shape_feature_vector::dimensions (i + 1));
-            }
-        }
     }
     void update (const hand_shape hs, const hand_shape_feature_vectors &hsfvs)
     {
@@ -368,9 +397,9 @@ class hand_shape_classifier
             assert (s.size () == v.size ());
             for (size_t i = 0; i < s.size (); ++i)
             {
-                v[i].update (s[i]);
-                double m = v[i].mean ();
-                double s = v[i].variance ();
+                v.update (i, s[i]);
+                double m = v.mean (i);
+                double s = v.variance (i);
                 std::clog << i << ' ' << m << ' ' << sqrt (s) << std::endl;
             }
         }
@@ -395,8 +424,8 @@ class hand_shape_classifier
                 for (size_t i = 0; i < s.size (); ++i)
                 {
                     const double x = s[i]; // feature dimension value
-                    const double m = v->second[i].mean ();
-                    const double s = v->second[i].variance ();
+                    const double m = v->second.mean (i);
+                    const double s = v->second.variance (i);
                     if (s != 0.0)
                     {
                         // update log likelihood
@@ -407,6 +436,78 @@ class hand_shape_classifier
             }
             l[hs] /= total;
         }
+    }
+    friend std::ostream& operator<< (std::ostream &s, const hand_shape_classifier &h)
+    {
+        for (auto i : h.hss)
+            for (auto j : i)
+                s << j.second << std::endl;
+        return s;
+    }
+    friend std::istream& operator>> (std::istream &s, hand_shape_classifier &h)
+    {
+        for (size_t i = 0; i < h.hss.size (); ++i)
+        {
+            for (auto hs : hand_shapes)
+            {
+                stats x;
+                s >> x;
+                h.hss[i][hs] = x;
+            }
+        }
+        return s;
+    }
+};
+
+typedef std::vector<hand_sample> hand_samples;
+
+class hand_sample_grabber : public Leap::Listener
+{
+    private:
+    bool on;
+    uint64_t max_time;
+    timestamps ts;
+    hand_samples hs;
+    public:
+    hand_sample_grabber ()
+        : on (false)
+        , max_time (0)
+    {
+    }
+    virtual void onFrame (const Leap::Controller& c)
+    {
+        // don't do anything if it's off
+        if (!on)
+            return;
+        // get the frame
+        Leap::Frame f = c.frame ();
+        // save the frame info
+        hs.push_back (hand_sample (f.pointables ()));
+        ts.push_back (f.timestamp ());
+        if (ts.back () - ts.front () >= max_time)
+            on = false;
+    }
+    const hand_samples &get_hand_samples ()
+    {
+        return hs;
+    }
+    const timestamps &get_timestamps ()
+    {
+        return ts;
+    }
+    void grab (uint64_t usec)
+    {
+        assert (!on);
+        // start with no frames
+        hs.clear ();
+        ts.clear ();
+        // set the time
+        max_time = usec;
+        // start getting frames
+        on = true;
+        // wait until it is done
+        while (on)
+            usleep (1000);
     }
 };
 
