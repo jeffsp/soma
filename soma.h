@@ -439,7 +439,7 @@ class hand_shape_classifier
             }
         }
     }
-    void classify (const hand_shape_feature_vectors &hsfvs, const timestamps &ts, std::map<hand_shape,double> &l) const
+    void classify (const hand_shape_feature_vectors &hsfvs, std::map<hand_shape,double> &l) const
     {
         for (auto hs : hand_shapes)
         {
@@ -525,6 +525,12 @@ class hand_sample_grabber : public Leap::Listener
     const hand_samples &get_hand_samples ()
     {
         return hs;
+    }
+    const uint64_t current_timestamp () const
+    {
+        if (ts.empty ())
+            return 0;
+        return ts.back ();
     }
     const timestamps &get_timestamps ()
     {
