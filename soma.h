@@ -27,6 +27,7 @@
 namespace soma
 {
 
+/// @brief keep track of frames and the time it takes to display them
 class frame_counter
 {
     private:
@@ -40,6 +41,9 @@ class frame_counter
         , last_ts (0)
     {
     }
+    /// @brief update the counter
+    ///
+    /// @param ts timestamp of the frame
     void update (uint64_t ts)
     {
         if (frames == 0)
@@ -48,10 +52,16 @@ class frame_counter
             last_ts = ts;
         ++frames;
     }
+    /// @brief get number of frames counted
+    ///
+    /// @return total frames counted
     uint64_t get_frames () const
     {
         return frames;
     }
+    /// @brief get frames per second
+    ///
+    /// @return fps
     double fps () const
     {
         double secs = static_cast<double> (last_ts - first_ts) / 1000000;
@@ -62,6 +72,9 @@ class frame_counter
     }
 };
 
+/// @brief A sliding window of samples
+///
+/// @tparam T sample type
 template<typename T>
 class sliding_time_window
 {
@@ -85,15 +98,24 @@ class sliding_time_window
         }
     }
     public:
+    /// @brief constructor
+    ///
+    /// @param duration duration of the window in useconds
     sliding_time_window (uint64_t duration)
         : duration (duration)
     {
     }
+    /// @brief remove all samples from the window
     void clear ()
     {
         samples.clear ();
         timestamps.clear ();
     }
+    /// @brief get the fullness at a given time
+    ///
+    /// @param ts the time
+    ///
+    /// @return 0.0, 1.0 where 1.0 is full and 0.0 is empty
     double fullness (uint64_t ts) const
     {
         if (timestamps.empty ())
@@ -103,6 +125,10 @@ class sliding_time_window
         assert (duration != 0);
         return (ts - start) / duration;
     }
+    /// @brief add a sample
+    ///
+    /// @param ts timestamp in useconds
+    /// @param n the sample
     void add_sample (uint64_t ts, const T &n)
     {
         // remove samples with old timestamps
@@ -112,14 +138,23 @@ class sliding_time_window
         timestamps.emplace_front (ts);
         samples.emplace_front (n);
     }
+    /// @brief get a reference to the samples
+    ///
+    /// @return the samples
     const std::deque<T> get_samples () const
     {
         return samples;
     }
+    /// @brief get a rerence to the timestamps
+    ///
+    /// @return the timestamps
     const std::deque<uint64_t> get_timestamps () const
     {
         return timestamps;
     }
+    /// @brief dump the samples to a stream
+    ///
+    /// @param s the stream
     void dump (std::ostream &s) const
     {
         uint64_t start = samples.front ().first;
@@ -299,7 +334,7 @@ std::string to_string (const hand_shape hs)
     }
 }
 
-class stats
+class dist_vectors
 {
     private:
     size_t total;
@@ -340,7 +375,7 @@ class stats
         assert (u2[i] / total >= u * u);
         return u2[i] / total - u * u;
     }
-    friend std::ostream& operator<< (std::ostream &s, const stats &x)
+    friend std::ostream& operator<< (std::ostream &s, const dist_vectors &x)
     {
         s << x.total << std::endl;
         assert (x.u1.size () == x.u2.size ());
@@ -350,7 +385,7 @@ class stats
             s << ' ' << x.u1[i] << ' ' << x.u2[i];
         return s;
     }
-    friend std::istream& operator>> (std::istream &s, stats &x)
+    friend std::istream& operator>> (std::istream &s, dist_vectors &x)
     {
         s >> x.total;
         size_t n;
@@ -367,8 +402,8 @@ const std::vector<hand_shape> hand_shapes { hand_shape::pointing, hand_shape::cl
 class hand_shape_classifier
 {
     private:
-    typedef std::map<hand_shape,stats> map_hand_shape_stats;
-    std::vector<map_hand_shape_stats> hss;
+    typedef std::map<hand_shape,dist_vectors> map_hand_shape_dists;
+    std::vector<map_hand_shape_dists> hss;
     public:
     hand_shape_classifier ()
         : hss (5)
@@ -393,7 +428,7 @@ class hand_shape_classifier
             assert (map_index < hss.size ());
             auto &v = hss[map_index][hs];
             //std::clog << "hand shape feature vector dimensions " << s.size () << std::endl;
-            //std::clog << "hand shape stats vector dimensions " << v.size () << std::endl;
+            //std::clog << "hand shape dists vector dimensions " << v.size () << std::endl;
             assert (s.size () == v.size ());
             for (size_t i = 0; i < s.size (); ++i)
             {
@@ -450,7 +485,7 @@ class hand_shape_classifier
         {
             for (auto hs : hand_shapes)
             {
-                stats x;
+                dist_vectors x;
                 s >> x;
                 h.hss[i][hs] = x;
             }
