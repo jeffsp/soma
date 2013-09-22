@@ -18,9 +18,7 @@ void classify (hand_sample_grabber &g, const hand_shape_classifier &hsc)
         // get some frames
         g.grab (SAMPLE_DURATION);
         hand_samples s = g.get_hand_samples ();
-        timestamps ts = g.get_timestamps ();
         assert (!s.empty ());
-        assert (s.size () == ts.size ());
         // filter out bad samples
         hand_samples fs = filter (s);
         // end if you show 6 or more fingers
@@ -32,7 +30,7 @@ void classify (hand_sample_grabber &g, const hand_shape_classifier &hsc)
         hand_shape_feature_vectors fv (fs.begin (), fs.end ());
         // classify them
         map<hand_shape,double> l;
-        hsc.classify (fv, ts, l);
+        hsc.classify (fv, l);
         double best_value = numeric_limits<int>::min ();
         hand_shape best_hs = hand_shape::unknown;
         for (auto i : l)
@@ -68,6 +66,7 @@ int main (int argc, char **argv)
         Leap::Controller c (g);
         hand_shape_classifier hsc;
 
+        clog << "reading classifier from stdin" << endl;
         cin >> hsc;
 
         classify (g, hsc);
