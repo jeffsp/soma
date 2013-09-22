@@ -3,11 +3,11 @@ all:
 	waf
 
 run: all
+	./build/debug/soma_mouse < training.dat
+
+train: all
 	./build/debug/train > training.dat
 	./build/debug/classify < training.dat
-
-mouse: all
-	./build/debug/soma_mouse
 
 check: all
 	$(MAKE) -C tests check
