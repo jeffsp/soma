@@ -63,7 +63,7 @@ class options
         : major_revision (MAJOR_REVISION, "major_revision")
         , minor_revision (MINOR_REVISION, "minor_revision")
         , sound (false, "sound")
-        , mouse_speed (5.0f, "mouse_speed")
+        , mouse_speed (10.0f, "mouse_speed")
     {
     }
     /// @brief option access
