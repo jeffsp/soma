@@ -42,15 +42,54 @@ int main (int argc, char **argv)
         }
 
         soma_mouse sm (opts);
-        Leap::Controller c (sm);
+        hand_sample_grabber g;
+        Leap::Controller c (g);
+        hand_shape_classifier hsc;
+
+        clog << "reading classifier from stdin" << endl;
+        cin >> hsc;
 
         // receive frames even when you don't have focus
         c.setPolicyFlags (Leap::Controller::POLICY_BACKGROUND_FRAMES);
 
         clog << "press control-C to quit" << endl;
 
-        while (!sm.is_done ())
+        const uint64_t SAMPLE_DURATION = 20000;
+        while (1)
         {
+            // get some frames
+            g.grab (SAMPLE_DURATION);
+            hand_samples s = g.get_hand_samples ();
+            // did we get anything?
+            if (s.empty ())
+                continue;
+            // filter out bad samples
+            hand_samples fs = filter (s);
+            const size_t nf = s.size () - fs.size ();
+            // make sure they are reliable samples
+            if (100 * nf / s.size () > 25) // more than 25%?
+                continue;
+            // end if you show 6 or more fingers
+            if (!fs.empty () && fs[0].size () > 5)
+                break;
+            // get next samples if these are bad
+            // convert them to feature vectors
+            hand_shape_feature_vectors fv (fs.begin (), fs.end ());
+            // classify them
+            map<hand_shape,double> l;
+            hsc.classify (fv, l);
+            double best_value = numeric_limits<int>::min ();
+            hand_shape best_hs = hand_shape::unknown;
+            for (auto i : l)
+            {
+                if (i.second > best_value)
+                {
+                    best_hs = i.first;
+                    best_value = i.second;
+                }
+            }
+            // update
+            sm.update (g.current_timestamp (), best_hs, fs[0]);
         }
 
         return 0;
