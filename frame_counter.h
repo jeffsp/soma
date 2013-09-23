@@ -1,11 +1,11 @@
-/// @file utility.h
-/// @brief utility functions
+/// @file frame_counter.h
+/// @brief frame_counter class
 /// @author Jeff Perry <jeffsp@gmail.com>
 /// @version 1.0
 /// @date 2013-09-23
 
-#ifndef UTILITY_H
-#define UTILITY_H
+#ifndef FRAME_COUNTER_H
+#define FRAME_COUNTER_H
 
 #include <cstdint>
 
@@ -28,7 +28,7 @@ class frame_counter
     }
     /// @brief update the counter
     ///
-    /// @param ts timestamp of the frame
+    /// @param ts timestamp of the frame in usecs
     void update (uint64_t ts)
     {
         if (frames == 0)

@@ -22,105 +22,13 @@
 #include <string>
 #include <vector>
 #include "stats.h"
-#include "utility.h"
+#include "frame_counter.h"
 #include "Leap.h"
 
 namespace soma
 {
 
 typedef Leap::Vector vec3;
-
-/// @brief A sliding window of samples
-///
-/// @tparam T sample type
-template<typename T>
-class sliding_time_window
-{
-    private:
-    const uint64_t duration;
-    std::deque<uint64_t> timestamps;
-    std::deque<T> samples;
-    void update (uint64_t ts)
-    {
-        while (!timestamps.empty ())
-        {
-            assert (samples.size () == timestamps.size ());
-            assert (ts >= timestamps.back ());
-            if (ts - timestamps.back () > duration)
-            {
-                timestamps.pop_back ();
-                samples.pop_back ();
-            }
-            else
-                break;
-        }
-    }
-    public:
-    /// @brief constructor
-    ///
-    /// @param duration duration of the window in useconds
-    sliding_time_window (uint64_t duration)
-        : duration (duration)
-    {
-    }
-    /// @brief remove all samples from the window
-    void clear ()
-    {
-        samples.clear ();
-        timestamps.clear ();
-    }
-    /// @brief get the fullness at a given time
-    ///
-    /// @param ts the time
-    ///
-    /// @return 0.0, 1.0 where 1.0 is full and 0.0 is empty
-    double fullness (uint64_t ts) const
-    {
-        if (timestamps.empty ())
-            return 0.0f;
-        double start = timestamps.back ();
-        assert (start <= ts);
-        assert (duration != 0);
-        return (ts - start) / duration;
-    }
-    /// @brief add a sample
-    ///
-    /// @param ts timestamp in useconds
-    /// @param n the sample
-    void add_sample (uint64_t ts, const T &n)
-    {
-        // remove samples with old timestamps
-        update (ts);
-        // don't add the same sample twice
-        assert (timestamps.empty () || timestamps.front () != ts);
-        timestamps.emplace_front (ts);
-        samples.emplace_front (n);
-    }
-    /// @brief get a reference to the samples
-    ///
-    /// @return the samples
-    const std::deque<T> get_samples () const
-    {
-        return samples;
-    }
-    /// @brief get a rerence to the timestamps
-    ///
-    /// @return the timestamps
-    const std::deque<uint64_t> get_timestamps () const
-    {
-        return timestamps;
-    }
-    /// @brief dump the samples to a stream
-    ///
-    /// @param s the stream
-    void dump (std::ostream &s) const
-    {
-        uint64_t start = samples.front ().first;
-        for (auto i : samples)
-            s << ' ' << '<' << start - i.first << ',' << i.second << '>';
-        s << std::endl;
-    }
-};
 
 struct finger
 {
