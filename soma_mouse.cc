@@ -76,7 +76,7 @@ int main (int argc, char **argv)
             // convert them to feature vectors
             hand_shape_feature_vectors fv (fs.begin (), fs.end ());
             // classify them
-            map<hand_shape,double> l;
+            unordered_map<hand_shape,double> l;
             hsc.classify (fv, l);
             double best_value = numeric_limits<int>::min ();
             hand_shape best_hs = -1;

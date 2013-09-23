@@ -4,6 +4,7 @@
 /// @version 1.0
 /// @date 2013-09-20
 
+#include <stdexcept>
 #include "soma.h"
 
 using namespace std;
@@ -29,7 +30,7 @@ void classify (hand_sample_grabber &g, const hand_shape_classifier &hsc)
         // convert them to feature vectors
         hand_shape_feature_vectors fv (fs.begin (), fs.end ());
         // classify them
-        map<hand_shape,double> l;
+        unordered_map<hand_shape,double> l;
         hsc.classify (fv, l);
         double best_value = numeric_limits<int>::min ();
         hand_shape best_hs = -1;

@@ -4,6 +4,7 @@
 /// @version 1.0
 /// @date 2013-09-06
 
+#include <stdexcept>
 #include "soma.h"
 
 using namespace std;
