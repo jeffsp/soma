@@ -79,7 +79,7 @@ int main (int argc, char **argv)
             map<hand_shape,double> l;
             hsc.classify (fv, l);
             double best_value = numeric_limits<int>::min ();
-            hand_shape best_hs = hand_shape::unknown;
+            hand_shape best_hs = -1;
             for (auto i : l)
             {
                 if (i.second > best_value)
