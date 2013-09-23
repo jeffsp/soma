@@ -14,9 +14,7 @@ void train (hand_sample_grabber &g, hand_shape_classifier &hsc, const hand_shape
 {
     const uint64_t SAMPLE_DURATION = 3000000;
     // display hand position
-    string hss = to_string (hs);
-    transform (hss.begin(), hss.end(), hss.begin(), ::toupper);
-    clog << "training hand position " << hss << endl;
+    clog << "training hand position " << hs << endl;
     // continue after user input
     clog << "press enter" << endl;
     string str;
