@@ -1,5 +1,4 @@
 all:
-	waf configure
 	waf
 
 run: check
