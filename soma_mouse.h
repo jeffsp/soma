@@ -22,7 +22,7 @@ class mouse_pointer
 {
     private:
     mouse &m;
-    Leap::Vector last_point;
+    vec3 last_point;
     bool last_point_valid;
     double speed;
     public:
@@ -41,7 +41,7 @@ class mouse_pointer
     {
         last_point_valid = false;
     }
-    void update (const Leap::Vector &p)
+    void update (const vec3 &p)
     {
         if (last_point_valid)
         {
@@ -57,11 +57,6 @@ class mouse_pointer
         m.center ();
     }
 };
-
-bool sort_top_to_bottom (const finger_sample &a, const finger_sample &b)
-{
-    return a.position.y > b.position.y;
-}
 
 class soma_mouse
 {
@@ -88,11 +83,11 @@ class soma_mouse
             default:
             assert (0);
             break;
-            case hand_shape::unknown:
+            case -1:
             mp.clear ();
             break;
-            case hand_shape::pointing:
-            case hand_shape::clicking:
+            case 0:
+            case 1:
             {
                 hand_sample tmp (hs);
                 assert (!tmp.empty ());
@@ -100,9 +95,11 @@ class soma_mouse
                 mp.update (tmp[0].position);
             }
             break;
-            case hand_shape::scrolling:
+            case 2:
             break;
-            case hand_shape::centering:
+            case 3:
+            break;
+            case 4:
             mp.clear ();
             mp.center ();
             break;
