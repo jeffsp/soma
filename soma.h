@@ -27,6 +27,8 @@
 namespace soma
 {
 
+typedef Leap::Vector vec3;
+
 /// @brief keep track of frames and the time it takes to display them
 class frame_counter
 {
@@ -164,29 +166,34 @@ class sliding_time_window
     }
 };
 
-struct finger_sample
+struct finger
 {
     int32_t id;
-    Leap::Vector position;
-    Leap::Vector velocity;
-    Leap::Vector direction;
-    finger_sample ()
+    vec3 position;
+    vec3 velocity;
+    vec3 direction;
+    finger ()
         : id (std::numeric_limits<uint32_t>::max ())
     {
     }
 };
 
-bool sort_by_id (const finger_sample &a, const finger_sample &b)
+bool sort_by_id (const finger &a, const finger &b)
 {
     return a.id < b.id;
 }
 
-bool sort_left_to_right (const finger_sample &a, const finger_sample &b)
+bool sort_left_to_right (const finger &a, const finger &b)
 {
     return a.position.x < b.position.x;
 }
 
-class hand_sample : public std::vector<finger_sample>
+bool sort_top_to_bottom (const finger &a, const finger &b)
+{
+    return a.position.y > b.position.y;
+}
+
+class hand_sample : public std::vector<finger>
 {
     public:
     hand_sample (const Leap::PointableList &pl)
@@ -274,10 +281,15 @@ hand_samples filter (const hand_samples &s)
     return r;
 }
 
-class hand_shape_feature_vector : public std::vector<double>
+size_t hand_shape_dimensions (size_t fingers)
+{
+    return 1 + fingers * 3 + (fingers - 1) * 4;
+}
+
+class hand_shape_features : public std::vector<double>
 {
     public:
-    hand_shape_feature_vector (const hand_sample &h)
+    hand_shape_features (const hand_sample &h)
     {
         push_back (h.size ());
         for (size_t i = 0; i < h.size (); ++i)
@@ -289,52 +301,20 @@ class hand_shape_feature_vector : public std::vector<double>
             {
                 float dist = h[i].position.distanceTo (h[i + 1].position);
                 push_back (dist);
-                Leap::Vector dir = h[i].position - h[i + 1].position;
+                vec3 dir = h[i].position - h[i + 1].position;
                 push_back (dir.x);
                 push_back (dir.y);
                 push_back (dir.z);
             }
         }
     }
-    static size_t dimensions (size_t fingers)
-    {
-        assert (fingers > 0);
-        return 1 + fingers * 3 + (fingers - 1) * 4;
-    }
 };
 
 typedef std::vector<uint64_t> timestamps;
-typedef std::vector<hand_shape_feature_vector> hand_shape_feature_vectors;
+typedef std::vector<hand_shape_features> hand_shape_feature_vectors;
+typedef int hand_shape;
 
-enum class hand_shape
-{
-    unknown,
-    pointing,
-    clicking,
-    scrolling,
-    centering
-};
-
-std::string to_string (const hand_shape hs)
-{
-    switch (hs)
-    {
-        default:
-        throw std::runtime_error ("invalid hand position");
-        case hand_shape::unknown:
-        return std::string ("unknown");
-        case hand_shape::pointing:
-        return std::string ("pointing");
-        case hand_shape::clicking:
-        return std::string ("clicking");
-        case hand_shape::scrolling:
-        return std::string ("scrolling");
-        case hand_shape::centering:
-        return std::string ("centering");
-    }
-}
-
-class dist_vectors
+class hand_shape_feature_dist
 {
     private:
     size_t total;
@@ -375,7 +355,7 @@ class dist_vectors
         assert (u2[i] / total >= u * u);
         return u2[i] / total - u * u;
     }
-    friend std::ostream& operator<< (std::ostream &s, const dist_vectors &x)
+    friend std::ostream& operator<< (std::ostream &s, const hand_shape_feature_dist &x)
     {
         s << x.total << std::endl;
         assert (x.u1.size () == x.u2.size ());
@@ -385,7 +365,7 @@ class dist_vectors
             s << ' ' << x.u1[i] << ' ' << x.u2[i];
         return s;
     }
-    friend std::istream& operator>> (std::istream &s, dist_vectors &x)
+    friend std::istream& operator>> (std::istream &s, hand_shape_feature_dist &x)
     {
         s >> x.total;
         size_t n;
@@ -397,12 +377,12 @@ class dist_vectors
     }
 };
 
-const std::vector<hand_shape> hand_shapes { hand_shape::pointing, hand_shape::clicking, hand_shape::scrolling, hand_shape::centering };
+const std::vector<hand_shape> hand_shapes { 0, 1, 2, 3, 4 };
 
 class hand_shape_classifier
 {
     private:
-    typedef std::map<hand_shape,dist_vectors> map_hand_shape_dists;
+    typedef std::map<hand_shape,hand_shape_feature_dist> map_hand_shape_dists;
     std::vector<map_hand_shape_dists> hss;
     public:
     hand_shape_classifier ()
@@ -413,7 +393,7 @@ class hand_shape_classifier
             // for each hand shape
             for (auto hs : hand_shapes)
                 // resize the vector of stats to the number of dimensions
-                hss[i][hs].resize (hand_shape_feature_vector::dimensions (i + 1));
+                hss[i][hs].resize (hand_shape_dimensions (i + 1));
     }
     void update (const hand_shape hs, const hand_shape_feature_vectors &hsfvs)
     {
@@ -485,7 +465,7 @@ class hand_shape_classifier
         {
             for (auto hs : hand_shapes)
             {
-                dist_vectors x;
+                hand_shape_feature_dist x;
                 s >> x;
                 h.hss[i][hs] = x;
             }
