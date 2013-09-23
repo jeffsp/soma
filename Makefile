@@ -1,6 +1,6 @@
 all:
-	waf configure
 	waf
+	$(MAKE) -C tests
 
 run: all
 	./build/debug/soma_mouse < training.dat
