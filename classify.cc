@@ -32,7 +32,7 @@ void classify (hand_sample_grabber &g, const hand_shape_classifier &hsc)
         map<hand_shape,double> l;
         hsc.classify (fv, l);
         double best_value = numeric_limits<int>::min ();
-        hand_shape best_hs = hand_shape::unknown;
+        hand_shape best_hs = -1;
         for (auto i : l)
         {
             if (i.second > best_value)
@@ -41,15 +41,13 @@ void classify (hand_sample_grabber &g, const hand_shape_classifier &hsc)
                 best_value = i.second;
             }
         }
-        static hand_shape last_hs = hand_shape::unknown;
+        static hand_shape last_hs = -1;
         if (last_hs != best_hs)
         {
             // show the class you got and its likelihood
-            string hss = to_string (best_hs);
-            transform (hss.begin(), hss.end(), hss.begin(), ::toupper);
-            clog << "class = " << hss << " (" << best_value << ")" << endl;
+            clog << "class = " << best_hs << " (" << best_value << ")" << endl;
             for (auto i : l)
-                clog << to_string (i.first) << ' ' << i.second << endl;
+                clog << i.first << ' ' << i.second << endl;
             last_hs = best_hs;
         }
     }
