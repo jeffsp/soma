@@ -16,14 +16,18 @@ size_t count = 0;
 
 struct sample
 {
-    void add () const { ++count; }
-    void remove () const { --count; }
+};
+
+struct policy
+{
+    static void add (const sample &) { ++count; }
+    static void remove (const sample &) { --count; }
 };
 
 void test_sliding_window (const bool verbose)
 {
     const uint64_t D = 100;
-    sliding_window<sample> sw (D);
+    sliding_window<sample,policy> sw (D);
     sample s;
     // add with no sliding
     for (uint64_t ts = 0; ts < D; ++ts)
