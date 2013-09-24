@@ -76,7 +76,7 @@ int main (int argc, char **argv)
             // convert them to feature vectors
             std::vector<hand_shape_features> fv (fs.begin (), fs.end ());
             // classify them
-            unordered_map<hand_shape,double> l;
+            map<hand_shape,double> l;
             hsc.classify (fv, l);
             double best_value = numeric_limits<int>::min ();
             hand_shape best_hs = -1;

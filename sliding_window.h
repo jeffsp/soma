@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <deque>
+#include <utility>
 
 namespace soma
 {
@@ -74,7 +75,7 @@ class sliding_window
         // signal that it is being added
         s.add ();
         // add it
-        samples.emplace_front (make_pair (ts, s));
+        samples.emplace_front (std::make_pair (ts, s));
         // remove samples with old timestamps
         update (ts);
     }

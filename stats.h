@@ -10,7 +10,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>
-#include <unordered_map>
+#include <map>
 
 namespace soma
 {
@@ -24,7 +24,7 @@ namespace soma
 template<typename T>
 typename T::value_type mode (const T &x)
 {
-    std::unordered_map<typename T::value_type,size_t> dist;
+    std::map<typename T::value_type,size_t> dist;
     size_t m_count = 0;
     typename T::value_type m{};
     for (auto i : x)
@@ -126,7 +126,7 @@ class running_mode
 {
     private:
     /// @brief the distribution
-    std::unordered_map<int,size_t> d;
+    std::map<int,size_t> d;
     /// @brief the mode
     int m;
     /// @brief count of the mode

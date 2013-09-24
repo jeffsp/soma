@@ -111,7 +111,7 @@ const std::vector<hand_shape> hand_shapes { 0, 1, 2, 3, 4 };
 class hand_shape_classifier
 {
     private:
-    typedef std::unordered_map<hand_shape,hand_shape_feature_dist> map_hand_shape_dists;
+    typedef std::map<hand_shape,hand_shape_feature_dist> map_hand_shape_dists;
     std::vector<map_hand_shape_dists> hss;
     public:
     hand_shape_classifier ()
@@ -124,10 +124,10 @@ class hand_shape_classifier
                 // resize the vector of stats to the number of dimensions
                 hss[i][hs].resize (hand_shape_dimensions (i + 1));
     }
-    void update (const hand_shape hs, const hand_shape_features &hsfv)
+    void update (const hand_shape hs, const hand_shape_features &hsf)
     {
         // first dimension always contains the number of fingers
-        const size_t fingers = hsfv[0];
+        const size_t fingers = hsf[0];
         // if there are no fingers detected, there is nothing to do
         if (fingers == 0)
             return;
@@ -136,37 +136,36 @@ class hand_shape_classifier
         auto &v = hss[map_index][hs];
         //std::clog << "hand shape feature vector dimensions " << s.size () << std::endl;
         //std::clog << "hand shape dists vector dimensions " << v.size () << std::endl;
-        assert (hsfv.size () == v.size ());
-        for (size_t i = 0; i < hsfv.size (); ++i)
+        assert (hsf.size () == v.size ());
+        for (size_t i = 0; i < hsf.size (); ++i)
         {
-            v.update (i, hsfv[i]);
+            v.update (i, hsf[i]);
             double m = v.mean (i);
             double s = v.variance (i);
             std::clog << i << ' ' << m << ' ' << sqrt (s) << std::endl;
         }
     }
-    hand_shape classify (const std::vector<hand_shape_features> &hsfv, std::unordered_map<hand_shape,double> &l) const
+    hand_shape classify (const std::vector<hand_shape_features> &hsf, std::map<hand_shape,double> &l) const
     {
-        l.clear ();
-        for (auto s : hsfv)
+        for (auto s : hsf)
         {
+            // first dimension always contains the number of fingers
+            const size_t fingers = s[0];
+            // if there are no fingers detected, there is nothing to do
+            if (fingers == 0)
+                return -1;
             for (auto hs : hand_shapes)
             {
-                // first dimension always contains the number of fingers
-                const size_t fingers = s[0];
-                // if there are no fingers detected, there is nothing to do
-                if (fingers == 0)
-                    return -1;
                 const size_t map_index = fingers - 1;
                 assert (map_index < hss.size ());
-                auto v = hss[map_index].find (hs);
-                assert (v != hss[map_index].end ());
-                assert (s.size () == v->second.size ());
-                for (size_t i = 0; i < s.size (); ++i)
+                auto d = hss[map_index].find (hs);
+                assert (d != hss[map_index].end ());
+                assert (s.size () == d->second.size ());
+                for (size_t i = 1; i < s.size (); ++i)
                 {
                     const double x = s[i]; // feature dimension value
-                    const double m = v->second.mean (i);
-                    const double s = v->second.variance (i);
+                    const double m = d->second.mean (i);
+                    const double s = d->second.variance (i);
                     // update log likelihood
                     if (s != 0.0)
                         l[hs] -= (x - m) * (x - m) / (2 * s);
@@ -174,7 +173,7 @@ class hand_shape_classifier
             }
         }
         // classify them
-        double best_value = std::numeric_limits<int>::min ();
+        double best_value = -std::numeric_limits<double>::max ();
         hand_shape best_hs = -1;
         for (auto i : l)
         {
@@ -184,7 +183,6 @@ class hand_shape_classifier
                 best_value = i.second;
             }
         }
-        assert (best_hs != -1);
         return best_hs;
 
     }

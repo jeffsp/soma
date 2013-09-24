@@ -8,6 +8,7 @@
 #define HAND_SAMPLE_GRABBBER_H
 
 #include "hand.h"
+#include <unistd.h>
 
 namespace soma
 {
