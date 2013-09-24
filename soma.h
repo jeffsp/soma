@@ -12,6 +12,7 @@
 #include "hand_sample_grabber.h"
 #include "hand_shape_classifier.h"
 #include "hand_traits.h"
+#include "sliding_window.h"
 #include "stats.h"
 
 #endif
