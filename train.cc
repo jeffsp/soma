@@ -34,9 +34,10 @@ void train (hand_sample_grabber &g, hand_shape_classifier &hsc, const hand_shape
     if (100 * nf / s.size () > 25)
         throw runtime_error ("filtered out too many samples");
     // convert them to feature vectors
-    hand_shape_feature_vectors fv (fs.begin (), fs.end ());
+    vector<hand_shape_features> fv (fs.begin (), fs.end ());
     // record them
-    hsc.update (hs, fv);
+    for (auto i : fv)
+        hsc.update (hs, i);
 }
 
 int main (int argc, char **argv)
