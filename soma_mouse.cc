@@ -41,56 +41,20 @@ int main (int argc, char **argv)
                 read (opts, config_fn);
         }
 
-        soma_mouse sm (opts);
-        hand_sample_grabber g;
-        Leap::Controller c (g);
-        hand_shape_classifier hsc;
-
         clog << "reading classifier from stdin" << endl;
+        hand_shape_classifier hsc;
         cin >> hsc;
+
+        soma_mouse sm (opts, hsc);
+        Leap::Controller c (sm);
 
         // receive frames even when you don't have focus
         c.setPolicyFlags (Leap::Controller::POLICY_BACKGROUND_FRAMES);
 
-        clog << "press control-C to quit" << endl;
+        clog << "6 fingers = quit" << endl;
 
-        const uint64_t SAMPLE_DURATION = 20000;
-        while (1)
-        {
-            // get some frames
-            g.grab (SAMPLE_DURATION);
-            hand_samples s = g.get_hand_samples ();
-            // did we get anything?
-            if (s.empty ())
-                continue;
-            // filter out bad samples
-            hand_samples fs = filter (s);
-            const size_t nf = s.size () - fs.size ();
-            // make sure they are reliable samples
-            if (100 * nf / s.size () > 25) // more than 25%?
-                continue;
-            // end if you show 6 or more fingers
-            if (!fs.empty () && fs[0].size () > 5)
-                break;
-            // get next samples if these are bad
-            // convert them to feature vectors
-            std::vector<hand_shape_features> fv (fs.begin (), fs.end ());
-            // classify them
-            map<hand_shape,double> l;
-            hsc.classify (fv, l);
-            double best_value = numeric_limits<int>::min ();
-            hand_shape best_hs = -1;
-            for (auto i : l)
-            {
-                if (i.second > best_value)
-                {
-                    best_hs = i.first;
-                    best_value = i.second;
-                }
-            }
-            // update
-            sm.update (g.current_timestamp (), best_hs, fs[0]);
-        }
+        while (!sm.is_done ())
+            ;
 
         return 0;
     }

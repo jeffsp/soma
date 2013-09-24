@@ -58,26 +58,20 @@ class mouse_pointer
     }
 };
 
-class soma_mouse
+class soma_mouse : public Leap::Listener
 {
     private:
+    bool done;
     const options &opts;
+    const hand_shape_classifier &hsc;
+    static const uint64_t SWHS_DURATION = 20000;
+    sliding_window<hand_sample> swhs;
+    mouse_pointer mp;
     frame_counter fc;
     mouse m;
-    mouse_pointer mp;
-    public:
-    soma_mouse (const options &opts)
-        : opts (opts)
-        , mp (m, opts.get_mouse_speed ())
+    timestamps ts;
+    void update (const hand_shape shape, const hand_sample &hs)
     {
-    }
-    ~soma_mouse ()
-    {
-        std::clog << fc.fps () << "fps" << std::endl;
-    }
-    void update (uint64_t ts, const hand_shape shape, const hand_sample &hs)
-    {
-        fc.update (ts);
         switch (shape)
         {
             default:
@@ -104,6 +98,73 @@ class soma_mouse
             mp.center ();
             break;
         }
+    }
+    public:
+    soma_mouse (const options &opts, const hand_shape_classifier &hsc)
+        : done (false)
+        , opts (opts)
+        , hsc (hsc)
+        , swhs (SWHS_DURATION)
+        , mp (m, opts.get_mouse_speed ())
+    {
+    }
+    ~soma_mouse ()
+    {
+        std::clog << fc.fps () << "fps" << std::endl;
+    }
+    bool is_done () const
+    {
+        return done;
+    }
+    virtual void onFrame (const Leap::Controller& c)
+    {
+        // get the frame
+        Leap::Frame f = c.frame ();
+        uint64_t ts = f.timestamp ();
+        // get the sample
+        hand_sample hs (f.pointables ());
+        // add it to the window
+        swhs.add (ts, hs);
+        // update frame counter
+        fc.update (ts);
+        // only operate when we have some samples
+        if (swhs.size () < 5)
+        {
+            update (-1, hs);
+            return;
+        }
+        // TODO should get using running mode to get nfingers
+        hand_samples s;
+        for (auto i : swhs.get_samples ())
+            s.push_back (i.second);
+        // did we get anything?
+        if (s.empty ())
+        {
+            update (-1, hs);
+            return;
+        }
+        // filter out bad samples
+        hand_samples fs = filter (s);
+        const size_t nf = s.size () - fs.size ();
+        // make sure they are reliable samples
+        if (100 * nf / s.size () > 25) // more than 25%?
+        {
+            update (-1, hs);
+            return;
+        }
+        // end if you show 6 or more fingers
+        if (!fs.empty () && fs[0].size () > 5)
+        {
+            update (-1, hs);
+            done = true;
+            return;
+        }
+        // convert them to feature vectors
+        std::vector<hand_shape_features> fv (fs.begin (), fs.end ());
+        // classify them
+        std::map<hand_shape,double> l;
+        hand_shape shape = hsc.classify (fv, l);
+        update (shape, hs);
     }
 };
 
