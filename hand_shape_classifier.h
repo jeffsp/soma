@@ -23,7 +23,8 @@ class hand_shape_features : public std::vector<double>
     public:
     hand_shape_features (const hand_sample &h)
     {
-        push_back (h.size ());
+        size_t fingers = h.size ();
+        push_back (fingers);
         for (size_t i = 0; i < h.size (); ++i)
         {
             push_back (h[i].direction.x);
@@ -39,6 +40,7 @@ class hand_shape_features : public std::vector<double>
                 push_back (dir.z);
             }
         }
+        assert (size () == hand_shape_dimensions (fingers));
     }
 };
 
