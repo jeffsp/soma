@@ -8,6 +8,7 @@
 #define HAND_SHAPE_CLASSIFIER_H
 
 #include "hand.h"
+#include <limits>
 
 namespace soma
 {
@@ -40,9 +41,6 @@ class hand_shape_features : public std::vector<double>
         }
     }
 };
-
-typedef std::vector<hand_shape_features> hand_shape_feature_vectors;
-typedef int hand_shape;
 
 class hand_shape_feature_dist
 {
@@ -107,6 +105,7 @@ class hand_shape_feature_dist
     }
 };
 
+typedef int hand_shape;
 const std::vector<hand_shape> hand_shapes { 0, 1, 2, 3, 4 };
 
 class hand_shape_classifier
@@ -125,42 +124,39 @@ class hand_shape_classifier
                 // resize the vector of stats to the number of dimensions
                 hss[i][hs].resize (hand_shape_dimensions (i + 1));
     }
-    void update (const hand_shape hs, const hand_shape_feature_vectors &hsfvs)
+    void update (const hand_shape hs, const hand_shape_features &hsfv)
     {
-        for (auto s : hsfvs)
+        // first dimension always contains the number of fingers
+        const size_t fingers = hsfv[0];
+        // if there are no fingers detected, there is nothing to do
+        if (fingers == 0)
+            return;
+        const size_t map_index = fingers - 1;
+        assert (map_index < hss.size ());
+        auto &v = hss[map_index][hs];
+        //std::clog << "hand shape feature vector dimensions " << s.size () << std::endl;
+        //std::clog << "hand shape dists vector dimensions " << v.size () << std::endl;
+        assert (hsfv.size () == v.size ());
+        for (size_t i = 0; i < hsfv.size (); ++i)
         {
-            // first dimension always contains the number of fingers
-            const size_t fingers = s[0];
-            // if there are no fingers detected, there is nothing to do
-            if (fingers == 0)
-                return;
-            const size_t map_index = fingers - 1;
-            assert (map_index < hss.size ());
-            auto &v = hss[map_index][hs];
-            //std::clog << "hand shape feature vector dimensions " << s.size () << std::endl;
-            //std::clog << "hand shape dists vector dimensions " << v.size () << std::endl;
-            assert (s.size () == v.size ());
-            for (size_t i = 0; i < s.size (); ++i)
-            {
-                v.update (i, s[i]);
-                double m = v.mean (i);
-                double s = v.variance (i);
-                std::clog << i << ' ' << m << ' ' << sqrt (s) << std::endl;
-            }
+            v.update (i, hsfv[i]);
+            double m = v.mean (i);
+            double s = v.variance (i);
+            std::clog << i << ' ' << m << ' ' << sqrt (s) << std::endl;
         }
     }
-    void classify (const hand_shape_feature_vectors &hsfvs, std::unordered_map<hand_shape,double> &l) const
+    hand_shape classify (const std::vector<hand_shape_features> &hsfv, std::unordered_map<hand_shape,double> &l) const
     {
-        for (auto hs : hand_shapes)
+        l.clear ();
+        for (auto s : hsfv)
         {
-            size_t total = 0;
-            for (auto s : hsfvs)
+            for (auto hs : hand_shapes)
             {
                 // first dimension always contains the number of fingers
                 const size_t fingers = s[0];
                 // if there are no fingers detected, there is nothing to do
                 if (fingers == 0)
-                    return;
+                    return -1;
                 const size_t map_index = fingers - 1;
                 assert (map_index < hss.size ());
                 auto v = hss[map_index].find (hs);
@@ -171,16 +167,26 @@ class hand_shape_classifier
                     const double x = s[i]; // feature dimension value
                     const double m = v->second.mean (i);
                     const double s = v->second.variance (i);
+                    // update log likelihood
                     if (s != 0.0)
-                    {
-                        // update log likelihood
                         l[hs] -= (x - m) * (x - m) / (2 * s);
-                        ++total;
-                    }
                 }
             }
-            l[hs] /= total;
         }
+        // classify them
+        double best_value = std::numeric_limits<int>::min ();
+        hand_shape best_hs = -1;
+        for (auto i : l)
+        {
+            if (i.second > best_value)
+            {
+                best_hs = i.first;
+                best_value = i.second;
+            }
+        }
+        assert (best_hs != -1);
+        return best_hs;
+
     }
     friend std::ostream& operator<< (std::ostream &s, const hand_shape_classifier &h)
     {

@@ -74,7 +74,7 @@ int main (int argc, char **argv)
                 break;
             // get next samples if these are bad
             // convert them to feature vectors
-            hand_shape_feature_vectors fv (fs.begin (), fs.end ());
+            std::vector<hand_shape_features> fv (fs.begin (), fs.end ());
             // classify them
             unordered_map<hand_shape,double> l;
             hsc.classify (fv, l);
