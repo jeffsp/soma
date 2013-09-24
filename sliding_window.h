@@ -16,15 +16,27 @@
 namespace soma
 {
 
+
+/// @brief default add/remove policy
+struct do_nothing
+{
+    template<typename T>
+    static void add (const T &) { }
+    template<typename T>
+    static void remove (const T &) { }
+};
+
 /// @brief A sliding window of samples
 ///
 /// @tparam T sample type
-template<typename T>
+/// @tparam P add/remove policy
+template<typename T,typename P=do_nothing>
 class sliding_window
 {
     private:
     const uint64_t duration;
-    std::deque<std::pair<uint64_t,T>> samples;
+    typedef std::deque<std::pair<uint64_t,T>> container;
+    container samples;
     void update (uint64_t ts)
     {
         // remove samples with old timestamps
@@ -35,7 +47,7 @@ class sliding_window
             if (ts - samples.back ().first >= duration)
             {
                 // signal that it is being removed
-                samples.back ().second.remove ();
+                P::remove (samples.back ().second);
                 // remove it
                 samples.pop_back ();
             }
@@ -51,12 +63,19 @@ class sliding_window
         : duration (duration)
     {
     }
+    /// @brief container access
+    ///
+    /// @return sliding window container
+    const container &get_samples () const
+    {
+        return samples;
+    }
     /// @brief remove all samples from the window
     void clear ()
     {
         for (auto i : samples)
             // signal that it is being removed
-            i.second.remove ();
+            P::remove (i.second);
         samples.clear ();
     }
     /// @brief get the number of samples in the deque
@@ -73,7 +92,7 @@ class sliding_window
     void add (uint64_t ts, const T &s)
     {
         // signal that it is being added
-        s.add ();
+        P::add (s);
         // add it
         samples.emplace_front (std::make_pair (ts, s));
         // remove samples with old timestamps
