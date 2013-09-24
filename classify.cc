@@ -28,25 +28,15 @@ void classify (hand_sample_grabber &g, const hand_shape_classifier &hsc)
         //const size_t nf = s.size () - fs.size ();
         //clog << "filtered out " << nf << " samples" << endl;
         // convert them to feature vectors
-        hand_shape_feature_vectors fv (fs.begin (), fs.end ());
+        vector<hand_shape_features> fv (fs.begin (), fs.end ());
         // classify them
         unordered_map<hand_shape,double> l;
-        hsc.classify (fv, l);
-        double best_value = numeric_limits<int>::min ();
-        hand_shape best_hs = -1;
-        for (auto i : l)
-        {
-            if (i.second > best_value)
-            {
-                best_hs = i.first;
-                best_value = i.second;
-            }
-        }
+        hand_shape best_hs = hsc.classify (fv, l);
         static hand_shape last_hs = -1;
         if (last_hs != best_hs)
         {
             // show the class you got and its likelihood
-            clog << "class = " << best_hs << " (" << best_value << ")" << endl;
+            clog << "class = " << best_hs << endl;
             for (auto i : l)
                 clog << i.first << ' ' << i.second << endl;
             last_hs = best_hs;
