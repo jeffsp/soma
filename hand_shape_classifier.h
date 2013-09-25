@@ -15,7 +15,10 @@ namespace soma
 
 size_t hand_shape_dimensions (size_t fingers)
 {
-    return 1 + fingers * 3 + (fingers - 1) * 4;
+    if (fingers == 0)
+        return 1;
+    else
+        return 1 + fingers * 3 + (fingers - 1) * 4;
 }
 
 class hand_shape_features : public std::vector<double>
