@@ -64,7 +64,7 @@ class soma_mouse : public Leap::Listener
     bool done;
     const options &opts;
     const hand_shape_classifier &hsc;
-    static const uint64_t SWHS_DURATION = 20000;
+    static const uint64_t SWHS_DURATION = 100000;
     sliding_window<hand_sample> swhs;
     mouse_pointer mp;
     frame_counter fc;
