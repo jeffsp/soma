@@ -21,15 +21,21 @@ namespace soma
 class mouse_pointer
 {
     private:
+    static const uint64_t SW_DURATION = 100000;
+    sliding_window<vec3> swpos;
+    sliding_window<vec3> swdir;
     mouse &m;
-    vec3 last_point;
-    bool last_point_valid;
     double speed;
+    bool last_valid;
+    vec3 last_point;
+    vec3 last_dir;
     public:
     mouse_pointer (mouse &m, double speed)
-        : m (m)
-        , last_point_valid (false)
+        : swpos (SW_DURATION)
+        , swdir (SW_DURATION)
+        , m (m)
         , speed (speed)
+        , last_valid (false)
     {
     }
     void set_speed (double s)
@@ -39,18 +45,56 @@ class mouse_pointer
     }
     void clear ()
     {
-        last_point_valid = false;
+        swpos.clear ();
+        swdir.clear ();
+        last_valid = false;
     }
-    void update (const vec3 &p)
+    void update (uint64_t ts, const vec3 &pos, const vec3 &dir)
     {
-        if (last_point_valid)
+        swpos.add (ts, pos);
+        swdir.add (ts, dir);
+        // TODO implement swpos.fullness()
+        if (swpos.size () > 5)
         {
-            double x = last_point.x - p.x;
-            double y = last_point.y - p.y;
-            m.move (-x * speed, y * speed);
+            vec3 p;
+            size_t total = 0;
+            for (auto i : swpos.get_samples ())
+            {
+                ++total;
+                p.x += i.second.x;
+                p.y += i.second.y;
+                p.z += i.second.z;
+            }
+            p.x /= total;
+            p.y /= total;
+            p.z /= total;
+            vec3 d;
+            total = 0;
+            for (auto i : swdir.get_samples ())
+            {
+                ++total;
+                d.x += i.second.x;
+                d.y += i.second.y;
+                d.z += i.second.z;
+            }
+            d.x /= total;
+            d.y /= total;
+            d.z /= total;
+            if (last_valid)
+            {
+                double x1 = last_point.x - p.x;
+                double y1 = last_point.y - p.y;
+                const double zscale = 5;
+                double x2 = zscale * (last_dir.x - dir.x);
+                double y2 = zscale * (last_dir.y - dir.y);
+                double x = x1 + x2;
+                double y = y1 + y2;
+                m.move (-x * speed, y * speed);
+            }
+            last_valid = true;
+            last_point = p;
+            last_dir = d;
         }
-        last_point = p;
-        last_point_valid = true;
     }
     void center ()
     {
@@ -70,7 +114,7 @@ class soma_mouse : public Leap::Listener
     frame_counter fc;
     mouse m;
     timestamps ts;
-    void update (const hand_shape shape, const hand_sample &hs)
+    void update (uint64_t ts, const hand_shape shape, const hand_sample &hs)
     {
         switch (shape)
         {
@@ -83,10 +127,12 @@ class soma_mouse : public Leap::Listener
             case 0:
             case 1:
             {
-                hand_sample tmp (hs);
-                assert (!tmp.empty ());
-                sort (tmp.begin (), tmp.end (), sort_top_to_bottom);
-                mp.update (tmp[0].position);
+                if (!hs.empty ())
+                {
+                    hand_sample tmp (hs);
+                    sort (tmp.begin (), tmp.end (), sort_top_to_bottom);
+                    mp.update (ts, tmp[0].position, tmp[0].direction);
+                }
             }
             break;
             case 2:
@@ -128,9 +174,10 @@ class soma_mouse : public Leap::Listener
         // update frame counter
         fc.update (ts);
         // only operate when we have some samples
+        // TODO implement swhs.fullness
         if (swhs.size () < 5)
         {
-            update (-1, hs);
+            update (ts, -1, hs);
             return;
         }
         // TODO should get using running mode to get nfingers
@@ -140,7 +187,7 @@ class soma_mouse : public Leap::Listener
         // did we get anything?
         if (s.empty ())
         {
-            update (-1, hs);
+            update (ts, -1, hs);
             return;
         }
         // filter out bad samples
@@ -149,13 +196,13 @@ class soma_mouse : public Leap::Listener
         // make sure they are reliable samples
         if (100 * nf / s.size () > 25) // more than 25%?
         {
-            update (-1, hs);
+            update (ts, -1, hs);
             return;
         }
         // end if you show 6 or more fingers
         if (!fs.empty () && fs[0].size () > 5)
         {
-            update (-1, hs);
+            update (ts, -1, hs);
             done = true;
             return;
         }
@@ -164,7 +211,7 @@ class soma_mouse : public Leap::Listener
         // classify them
         std::map<hand_shape,double> l;
         hand_shape shape = hsc.classify (fv, l);
-        update (shape, hs);
+        update (ts, shape, hs);
     }
 };
 
