@@ -17,7 +17,6 @@ public:
     CursorTab(QWidget *parent = 0);
 };
 
-//! [0]
 class ButtonTab : public QWidget
 {
     Q_OBJECT
@@ -25,32 +24,16 @@ class ButtonTab : public QWidget
 public:
     ButtonTab(QWidget *parent = 0);
 };
-//! [0]
 
 
-//! [1]
-class PermissionsTab : public QWidget
+class PerformanceTab : public QWidget
 {
     Q_OBJECT
 
 public:
-    PermissionsTab(const QFileInfo &fileInfo, QWidget *parent = 0);
+    PerformanceTab(QWidget *parent = 0);
 };
-//! [1]
 
-
-//! [2]
-class ApplicationsTab : public QWidget
-{
-    Q_OBJECT
-
-public:
-    ApplicationsTab(const QFileInfo &fileInfo, QWidget *parent = 0);
-};
-//! [2]
-
-
-//! [3]
 class UsabilityDialog : public QDialog
 {
     Q_OBJECT
@@ -62,6 +45,5 @@ private:
     QTabWidget *tabWidget;
     QDialogButtonBox *buttonBox;
 };
-//! [3]
 
 #endif
