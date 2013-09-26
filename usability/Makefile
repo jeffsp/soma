@@ -2,7 +2,7 @@ all:
 	qmake -o Makefile.qt
 	$(MAKE) -f Makefile.qt
 
-run:
+run: all
 	./usability
 
 clean:
