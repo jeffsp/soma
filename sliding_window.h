@@ -37,6 +37,7 @@ class sliding_window
     const uint64_t duration;
     typedef std::deque<std::pair<uint64_t,T>> container;
     container samples;
+    bool full;
     void update (uint64_t ts)
     {
         // remove samples with old timestamps
@@ -46,6 +47,8 @@ class sliding_window
             // any more old samples?
             if (ts - samples.back ().first >= duration)
             {
+                // if we have to remove samples, then it is full
+                full = true;
                 // signal that it is being removed
                 P::remove (samples.back ().second);
                 // remove it
@@ -61,7 +64,22 @@ class sliding_window
     /// @param duration duration of the window in useconds
     sliding_window (uint64_t duration)
         : duration (duration)
+        , full (false)
     {
+    }
+    /// @brief size of container
+    ///
+    /// @return the size
+    size_t size () const
+    {
+        return samples.size ();
+    }
+    /// @brief is the window full
+    ///
+    /// @return true if full
+    bool is_full () const
+    {
+        return full;
     }
     /// @brief container access
     ///
@@ -77,13 +95,7 @@ class sliding_window
             // signal that it is being removed
             P::remove (i.second);
         samples.clear ();
-    }
-    /// @brief get the number of samples in the deque
-    ///
-    /// @return size
-    size_t size () const
-    {
-        return samples.size ();
+        full = false;
     }
     /// @brief add a sample
     ///
@@ -95,6 +107,8 @@ class sliding_window
         P::add (s);
         // add it
         samples.emplace_front (std::make_pair (ts, s));
+        // assume that it's not full
+        full = false;
         // remove samples with old timestamps
         update (ts);
     }
