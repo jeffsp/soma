@@ -4,10 +4,25 @@
 #include <deque>
 #include <QtGui>
 
+/// @brief test results tab
+class ResultsTab : public QWidget
+{
+    Q_OBJECT
+    QListWidget *listWidget;
+    public:
+    /// @brief constructor
+    ///
+    /// @param parent widget
+    ResultsTab(QWidget *parent = 0);
+    void Add (const QString &s);
+};
+
 /// @brief scene data for the cursor test
 class CursorScene : public QGraphicsScene
 {
     Q_OBJECT
+    /// @brief access to results
+    ResultsTab *resultsTab;
     /// @brief duration of test
     static const int TEST_SECS = 10;
     /// @brief size of circle
@@ -39,7 +54,7 @@ class CursorScene : public QGraphicsScene
     /// @brief constructor
     ///
     /// @param parent parent widget
-    CursorScene (QWidget * parent = 0);
+    CursorScene (QWidget * parent, ResultsTab *resultsTab);
     /// @brief override
     ///
     /// @param event
@@ -72,6 +87,8 @@ class CursorView : public QGraphicsView
 class CursorTab : public QWidget
 {
     Q_OBJECT
+    /// @brief access to results
+    ResultsTab *resultsTab;
     /// @brief scene data
     CursorScene *cursorScene;
     /// @brief scene view
@@ -80,7 +97,8 @@ class CursorTab : public QWidget
     /// @brief constructor
     ///
     /// @param parent parent widget
-    CursorTab(QWidget *parent = 0);
+    /// @param access to results
+    CursorTab(QWidget *parent, ResultsTab *results);
     /// @brief override
     ///
     /// @param control tests
@@ -97,24 +115,16 @@ class CursorTab : public QWidget
 class ButtonTab : public QWidget
 {
     Q_OBJECT
+    /// @brief access to results
+    ResultsTab *resultsTab;
     public:
     /// @brief constructor
     ///
     /// @param parent widget
-    ButtonTab(QWidget *parent = 0);
+    /// @param access to results
+    ButtonTab(QWidget *parent, ResultsTab *results);
 };
 
-
-/// @brief test results tab
-class ResultsTab : public QWidget
-{
-    Q_OBJECT
-    public:
-    /// @brief constructor
-    ///
-    /// @param parent widget
-    ResultsTab(QWidget *parent = 0);
-};
 
 /// @brief dialog that contains usability test tabs
 class UsabilityDialog : public QDialog

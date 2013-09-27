@@ -16,9 +16,9 @@ UsabilityDialog::UsabilityDialog(QWidget *parent)
     showFullScreen ();
     // allocate tabs
     tabWidget = new QTabWidget (this);
-    cursorTab = new CursorTab(this);
-    buttonTab = new ButtonTab(this);
     resultsTab = new ResultsTab(this);
+    cursorTab = new CursorTab(this, resultsTab);
+    buttonTab = new ButtonTab(this, resultsTab);
     // add them to the tab widget
     tabWidget->addTab(cursorTab, tr("Follow the Cursor"));
     tabWidget->addTab(buttonTab, tr("Buttons"));
@@ -42,8 +42,9 @@ UsabilityDialog::UsabilityDialog(QWidget *parent)
 /// @brief constructor
 ///
 /// @param parent parent widget
-CursorScene::CursorScene (QWidget * parent)
+CursorScene::CursorScene (QWidget * parent, ResultsTab *resultsTab)
     : QGraphicsScene (parent)
+    , resultsTab (resultsTab)
     , testing (false)
     , text (new QGraphicsTextItem ("Try to keep the cursor inside of the circle.  Press SPACE to begin."))
     , circle (new QGraphicsEllipseItem (0))
@@ -52,7 +53,7 @@ CursorScene::CursorScene (QWidget * parent)
     text->setFont (QFont ("Arial", 18, QFont::Bold));
     // center the instruction text
     QRectF r = text->boundingRect ();
-    text->setPos (-r.width () / 2, -r.height () / 2);
+    text->setPos (-r.width () / 2, -r.height () / 2 + 100);
     // add it
     addItem (text);
     // make a circle
@@ -60,9 +61,11 @@ CursorScene::CursorScene (QWidget * parent)
     addItem (circle);
     // set background of client area
     setBackgroundBrush (Qt::white);
-    // initially show only the text
+    // show the text
     text->setVisible (true);
-    circle->setVisible (false);
+    circle->setVisible (true);
+    // start circle in the center
+    circle->setPos (QPointF (0, 0));
 }
 
 /// @brief used to move the circle at set intervals
@@ -155,9 +158,11 @@ void CursorScene::start_test ()
     // reset performance counter
     mse_total = 0;
     se = 0.0;
-    // turn off text and turn on circle
+    // show the text
     text->setVisible (false);
     circle->setVisible (true);
+    // start circle in the center
+    circle->setPos (QPointF (0, 0));
     // clear position buffers
     posX.clear ();
     posY.clear ();
@@ -172,15 +177,25 @@ void CursorScene::stop_test ()
     // get fps
     int elapsed = start_time.elapsed ();
     float secs = elapsed / 1000.0f;
-    qDebug () << frames << " frames";
-    qDebug () << secs << " secs";
+    QString s;
+    s.sprintf ("CursorTest:frames %d", frames);
+    qDebug () << s;
+    s.sprintf ("CursorTest:seconds %f", secs);
+    qDebug () << s;
+    float fps = 0.0;
     if (elapsed)
-        qDebug () << frames / secs << "fps";
+        fps = frames / secs;
+    s.sprintf ("CursorTest:fps %f", fps);
+    qDebug () << s;
     // get performance
-    qDebug () << "rmse " << sqrt (se / mse_total);
-    // turn on text and turn off circle
+    float rmse = sqrt (se / mse_total);
+    s.sprintf ("CursorTest:rmse %f", rmse);
+    resultsTab->Add (s); qDebug () << s;
+    // show the text
     text->setVisible (true);
-    circle->setVisible (false);
+    circle->setVisible (true);
+    // start circle in the center
+    circle->setPos (QPointF (0, 0));
 }
 
 /// @brief constructor
@@ -196,11 +211,13 @@ CursorView::CursorView (CursorScene * scene, QWidget * parent)
 /// @brief constructor
 ///
 /// @param parent parent widget
-CursorTab::CursorTab(QWidget *parent)
+/// @param access to results
+CursorTab::CursorTab(QWidget *parent, ResultsTab *resultsTab)
     : QWidget(parent)
+    , resultsTab (resultsTab)
 {
     // setup the scene and view
-    cursorScene = new CursorScene (this);
+    cursorScene = new CursorScene (this, resultsTab);
     cursorView = new CursorView (cursorScene, this);
     cursorView->setRenderHints (QPainter::Antialiasing);
     cursorView->show ();
@@ -229,8 +246,10 @@ void CursorTab::keyPressEvent (QKeyEvent *e)
 /// @brief constructor
 ///
 /// @param parent parent widget
-ButtonTab::ButtonTab(QWidget *parent)
+/// @param access to results
+ButtonTab::ButtonTab(QWidget *parent, ResultsTab *resultsTab)
     : QWidget(parent)
+    , resultsTab (resultsTab)
 {
     QHBoxLayout *mainLayout = new QHBoxLayout;
     QPushButton *button = new QPushButton("Click Me");
@@ -244,7 +263,14 @@ ButtonTab::ButtonTab(QWidget *parent)
 /// @param parent parent widget
 ResultsTab::ResultsTab(QWidget *parent)
     : QWidget(parent)
+    , listWidget (new QListWidget)
 {
     QHBoxLayout *mainLayout = new QHBoxLayout;
+    mainLayout->addWidget(listWidget);
     setLayout(mainLayout);
+}
+
+void ResultsTab::Add (const QString &s)
+{
+    listWidget->addItem (new QListWidgetItem (s, listWidget));
 }
