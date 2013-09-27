@@ -74,6 +74,22 @@ void CursorScene::timerEvent (QTimerEvent *)
         setTesting (false);
         return;
     }
+    {
+        // get the current circle center in scene coordinates
+        QPointF p = circle->boundingRect ().center ();
+        // get position in viewport coordinates
+        QPoint v = views ().first ()->mapFromScene (p);
+        // get position in global coordinates
+        QPoint g = views ().first ()->viewport ()->mapToGlobal (v);
+        // get the current cursor position in pixels
+        QPoint q = QCursor::pos ();
+        // update error rate
+        ++mse_total;
+        float dx = g.x () - q.x() ;
+        float dy = g.y () - q.y ();
+        float d = sqrt (dx * dx + dy * dy);
+        se += d * d;
+    }
     // move along a line 'dist' intervals
     static int dist = 0;
     static int dx = 0;
@@ -124,32 +140,47 @@ void CursorScene::setTesting (bool f)
 {
     testing = f;
     if (testing)
-    {
-        // start a new test
-        timer.start (1000/30, this);
-        start_time.start ();
-        frames = 0;
-        text->setVisible (false);
-        circle->setVisible (true);
-        posX.clear ();
-        posY.clear ();
-        posX.assign (POS_MAX, 0.0);
-        posY.assign (POS_MAX, 0.0);
-    }
+        start_test ();
     else
-    {
-        // end the test
-        timer.stop ();
-        int elapsed = start_time.elapsed ();
-        float secs = elapsed / 1000.0f;
-        qDebug () << frames << " frames";
-        qDebug () << secs << " secs";
-        if (elapsed)
-            qDebug () << frames / secs << "fps";
-        frames = 0;
-        text->setVisible (true);
-        circle->setVisible (false);
-    }
+        stop_test ();
+}
+
+void CursorScene::start_test ()
+{
+    // start a new test
+    timer.start (1000/30, this);
+    start_time.start ();
+    // reset frame counter
+    frames = 0;
+    // reset performance counter
+    mse_total = 0;
+    se = 0.0;
+    // turn off text and turn on circle
+    text->setVisible (false);
+    circle->setVisible (true);
+    // clear position buffers
+    posX.clear ();
+    posY.clear ();
+    posX.assign (POS_MAX, 0.0);
+    posY.assign (POS_MAX, 0.0);
+}
+
+void CursorScene::stop_test ()
+{
+    // end the test
+    timer.stop ();
+    // get fps
+    int elapsed = start_time.elapsed ();
+    float secs = elapsed / 1000.0f;
+    qDebug () << frames << " frames";
+    qDebug () << secs << " secs";
+    if (elapsed)
+        qDebug () << frames / secs << "fps";
+    // get performance
+    qDebug () << "rmse " << sqrt (se / mse_total);
+    // turn on text and turn off circle
+    text->setVisible (true);
+    circle->setVisible (false);
 }
 
 /// @brief constructor

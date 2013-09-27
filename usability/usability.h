@@ -9,7 +9,7 @@ class CursorScene : public QGraphicsScene
 {
     Q_OBJECT
     /// @brief duration of test
-    static const int TEST_SECS = 5;
+    static const int TEST_SECS = 10;
     /// @brief size of circle
     static const int RADIUS = 30;
     /// @brief used to filter circle position
@@ -30,6 +30,11 @@ class CursorScene : public QGraphicsScene
     QTime start_time;
     /// @brief frame counter
     int frames;
+    /// @brief performance stuff
+    size_t mse_total;
+    double se;
+    void start_test ();
+    void stop_test ();
     public:
     /// @brief constructor
     ///
