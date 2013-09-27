@@ -150,12 +150,13 @@ class hand_shape_classifier
             std::clog << i << ' ' << m << ' ' << sqrt (s) << std::endl;
         }
     }
-    hand_shape classify (const std::vector<hand_shape_features> &hsf, std::map<hand_shape,double> &l) const
+    template<typename T>
+    hand_shape classify (const T beg, const T end, std::map<hand_shape,double> &l) const
     {
-        for (auto s : hsf)
+        for (T s = beg; s != end; ++s)
         {
             // first dimension always contains the number of fingers
-            const size_t fingers = s[0];
+            const size_t fingers = (*s)[0];
             // if there are no fingers detected, there is nothing to do
             if (fingers == 0)
                 return -1;
@@ -165,15 +166,15 @@ class hand_shape_classifier
                 assert (map_index < hss.size ());
                 auto d = hss[map_index].find (hs);
                 assert (d != hss[map_index].end ());
-                assert (s.size () == d->second.size ());
-                for (size_t i = 1; i < s.size (); ++i)
+                assert ((*s).size () == d->second.size ());
+                for (size_t i = 1; i < (*s).size (); ++i)
                 {
-                    const double x = s[i]; // feature dimension value
+                    const double x = (*s)[i]; // feature dimension value
                     const double m = d->second.mean (i);
-                    const double s = d->second.variance (i);
+                    const double s2 = d->second.variance (i);
                     // update log likelihood
-                    if (s != 0.0)
-                        l[hs] -= (x - m) * (x - m) / (2 * s);
+                    if (s2 != 0.0)
+                        l[hs] -= (x - m) * (x - m) / (2 * s2);
                 }
             }
         }

@@ -53,8 +53,7 @@ class mouse_pointer
     {
         swpos.add (ts, pos);
         swdir.add (ts, dir);
-        // TODO implement swpos.fullness()
-        if (swpos.size () > 5)
+        if (swpos.is_full ())
         {
             vec3 p;
             size_t total = 0;
@@ -174,8 +173,7 @@ class soma_mouse : public Leap::Listener
         // update frame counter
         fc.update (ts);
         // only operate when we have some samples
-        // TODO implement swhs.fullness
-        if (swhs.size () < 5)
+        if (!swhs.is_full ())
         {
             update (ts, -1, hs);
             return;
@@ -210,7 +208,7 @@ class soma_mouse : public Leap::Listener
         std::vector<hand_shape_features> fv (fs.begin (), fs.end ());
         // classify them
         std::map<hand_shape,double> l;
-        hand_shape shape = hsc.classify (fv, l);
+        hand_shape shape = hsc.classify (fv.begin (), fv.end (), l);
         update (ts, shape, hs);
     }
 };

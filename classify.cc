@@ -31,7 +31,7 @@ void classify (hand_sample_grabber &g, const hand_shape_classifier &hsc)
         vector<hand_shape_features> fv (fs.begin (), fs.end ());
         // classify them
         map<hand_shape,double> l;
-        hand_shape best_hs = hsc.classify (fv, l);
+        hand_shape best_hs = hsc.classify (fv.begin (), fv.end (), l);
         static hand_shape last_hs = -1;
         if (last_hs != best_hs)
         {
