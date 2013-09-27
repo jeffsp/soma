@@ -63,7 +63,7 @@ class options
         : major_revision (MAJOR_REVISION, "major_revision")
         , minor_revision (MINOR_REVISION, "minor_revision")
         , sound (false, "sound")
-        , mouse_speed (10.0f, "mouse_speed")
+        , mouse_speed (5.0f, "mouse_speed")
     {
     }
     /// @brief option access
@@ -106,6 +106,7 @@ class options
         s << opts.major_revision.name << " " << opts.major_revision.value << std::endl;
         s << opts.minor_revision.name << " " << opts.minor_revision.value << std::endl;
         s << opts.sound.name << " " << opts.sound.value << std::endl;
+        s << opts.mouse_speed.name << " " << opts.mouse_speed.value << std::endl;
         return s;
     }
     /// @brief i/o helper
@@ -121,6 +122,7 @@ class options
             if (opts.minor_revision.value > MINOR_REVISION)
                 throw std::runtime_error ("warning: configuration file revision number is newer than this program's revision number");
             opts.sound.parse (s);
+            opts.mouse_speed.parse (s);
         }
         catch (const std::exception &e)
         {
