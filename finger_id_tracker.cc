@@ -33,11 +33,14 @@ class grabber : public Leap::Listener
         // add it to the tracker
         fit.add (ts, ids);
         // if it's changed, print the result
-        if (fit.has_changed ())
+        for (size_t nfingers = 0; nfingers < 10; ++nfingers)
         {
-            for (auto i : fit.get_ids ())
-                clog << ' ' << i;
-            clog << endl;
+            if (fit.has_changed (nfingers))
+            {
+                for (auto i : fit.get_ids (nfingers))
+                    clog << ' ' << i;
+                clog << endl;
+            }
         }
     }
 };

@@ -9,6 +9,7 @@
 
 #include "soma.h"
 #include <cstdint>
+#include <map>
 #include <vector>
 
 namespace soma
@@ -18,50 +19,76 @@ namespace soma
 class finger_id_tracker
 {
     public:
+    /// @brief finger id type
     typedef std::vector<int32_t> finger_ids;
     private:
-    std::vector<running_mode> modes;
-    finger_ids current_ids;
+    /// @brief sliding window of ids
     sliding_window<finger_ids> w;
-    bool changed;
+    /// @brief one vector of modes for each number of fingers
+    std::map<size_t,std::vector<running_mode>> modes;
+    /// @brief one vector of current ids for each number of fingers
+    std::map<size_t,finger_ids> current_ids;
+    /// @brief one vector of changed flags for each number of fingers
+    std::map<size_t,bool> changed;
     public:
+    /// @brief constructor
+    ///
+    /// @param duration sliding window duration
     finger_id_tracker (uint64_t duration)
         : w (duration)
-        , changed (false)
     {
     }
+    /// @brief add a vector of ids
+    ///
+    /// @param ts timestamp
+    /// @param ids ids
     void add (uint64_t ts, const finger_ids &ids)
     {
-        finger_ids last = current_ids;
+        size_t nfingers = ids.size ();
+        auto last = current_ids[nfingers];
         w.add (ts, ids, *this);
-        changed = (last != current_ids);
+        changed[nfingers] = (last != current_ids[nfingers]);
     }
-    finger_ids get_ids () const
+    /// @brief get the current ids
+    ///
+    /// @param nfingers number of fingers
+    ///
+    /// @return the ids
+    finger_ids get_ids (size_t nfingers) const
     {
-        return current_ids;
+        auto i = current_ids.find (nfingers);
+        if (i == current_ids.end ())
+            return finger_ids (nfingers);
+        else
+            return i->second;
     }
-    bool has_changed () const
+    /// @brief have the ids changed since last add
+    ///
+    /// @param nfingers number fo fingers
+    ///
+    /// @return true if changed
+    bool has_changed (size_t nfingers) const
     {
-        return changed;
+        auto i = changed.find (nfingers);
+        if (i == changed.end ())
+            return false;
+        else
+            return i->second;
     }
     /// @brief observer callback
     ///
     /// @param ids ids to add
     void add (const finger_ids &ids)
     {
-        // if they don't have the same number of fingers, start the running modes over
-        if (ids.size () != modes.size ())
-        {
-            modes.clear ();
-            modes.resize (ids.size ());
-            current_ids.resize (ids.size ());
-        }
-        assert (modes.size () == ids.size ());
-        assert (modes.size () == current_ids.size ());
+        size_t nfingers = ids.size ();
+        if (modes[nfingers].size () != nfingers)
+            modes[nfingers].resize (nfingers);
+        if (current_ids[nfingers].size () != nfingers)
+            current_ids[nfingers].resize (nfingers);
         for (size_t i = 0; i < ids.size (); ++i)
         {
-            modes[i].add (ids[i]);
-            current_ids[i] = modes[i].mode ();
+            modes[nfingers][i].add (ids[i]);
+            current_ids[nfingers][i] = modes[nfingers][i].mode ();
         }
     }
     /// @brief observer callback
@@ -69,12 +96,13 @@ class finger_id_tracker
     /// @param ids ids to remove
     void remove (const finger_ids &ids)
     {
-        assert (modes.size () == ids.size ());
-        assert (modes.size () == current_ids.size ());
+        size_t nfingers = ids.size ();
         for (size_t i = 0; i < ids.size (); ++i)
         {
-            modes[i].remove (ids[i]);
-            current_ids[i] = modes[i].mode ();
+            assert (i < modes[nfingers].size ());
+            assert (i < current_ids[nfingers].size ());
+            modes[nfingers][i].remove (ids[i]);
+            current_ids[nfingers][i] = modes[nfingers][i].mode ();
         }
     }
 };
