@@ -42,7 +42,7 @@ void test_finger_id_tracker1 (const bool verbose)
 
 void test_finger_id_tracker2 (const bool verbose)
 {
-    std::deque<finger_ids> samples;
+    deque<finger_ids> samples;
     const uint64_t D = 100;
     const size_t S = 10000;
     finger_id_tracker fit (D);
@@ -76,36 +76,38 @@ void test_finger_id_tracker2 (const bool verbose)
         {
             // get ids
             finger_ids ids0 = fit.get_ids (j);
-            if (verbose && fit.has_changed (j))
+            // make sure they really did change
+            if (fit.has_changed (j))
             {
-                for (auto k : ids0)
-                    clog << " " << k;
-                clog << endl;
                 VERIFY (ids0 == after[j]);
                 VERIFY (before[j] != after[j]);
             }
-            /*
-            // compare them to ours
+            // compare the ids to ours
             finger_ids ids1 (j);
             for (size_t k = 0; k < j; ++k)
             {
-                std::map<size_t,size_t> dist;
-                std::vector<int32_t> tmp;
+                map<size_t,size_t> dist;
+                vector<int32_t> tmp;
                 for (auto s : samples)
                 {
+                    // if the sample is the right size
                     if (s.size () == j)
+                    {
+                        // update the distribution
                         ++dist[s[k]];
-                    tmp.push_back (s[k]);
+                        // for computing mode
+                        tmp.push_back (s[k]);
+                    }
                 }
+                // computed mode
                 int32_t n0 = ids0[k];
+                // our computed mode
                 int32_t n1 = mode (tmp);
+                // it might not match, so we have to check the distribution
                 VERIFY (n0 == n1 || dist[n0] == dist[n1]);
             }
-            */
         }
     }
-    if (verbose)
-        clog << endl;
 }
 
 int main (int argc, char **)
