@@ -29,8 +29,9 @@ class grabber : public Leap::Listener
         hand_sample hs (f.pointables ());
         // add it to the counter
         fc.add (ts, hs.size ());
-        // print the result
-        clog << fc.count () << endl;
+        // if it's changed, print the result
+        if (fc.has_changed ())
+            clog << fc.count () << endl;
     }
 };
 

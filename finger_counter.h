@@ -19,18 +19,26 @@ class finger_counter
     private:
     sliding_window<int> w;
     running_mode m;
+    bool changed;
     public:
     finger_counter (uint64_t duration)
         : w (duration)
+        , changed (false)
     {
     }
     void add (uint64_t ts, int nfingers)
     {
+        int last = m.mode ();
         w.add (ts, nfingers, m);
+        changed = (last != m.mode ());
     }
     size_t count () const
     {
         return m.mode ();
+    }
+    bool has_changed () const
+    {
+        return changed;
     }
 };
 
