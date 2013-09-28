@@ -3,6 +3,9 @@ all:
 	$(MAKE) -C tests
 
 run: all
+	./build/debug/finger_id_tracker
+
+finger_counter: all
 	./build/debug/finger_counter
 
 train: all
