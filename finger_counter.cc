@@ -31,7 +31,7 @@ class grabber : public Leap::Listener
         fc.add (ts, hs.size ());
         // if it's changed, print the result
         if (fc.has_changed ())
-            clog << fc.count () << endl;
+            clog << fc.get_count () << endl;
     }
 };
 
