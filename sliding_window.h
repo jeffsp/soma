@@ -10,54 +10,35 @@
 #include <cassert>
 #include <cstdint>
 #include <cstdlib>
+#include <vector>
 #include <deque>
-#include <utility>
 
 namespace soma
 {
 
-
-/// @brief default add/remove policy
+/// @brief dummy class for adding a sample with no observer
 struct do_nothing
 {
     template<typename T>
-    static void add (const T &) { }
+    void add (const T &) { }
     template<typename T>
-    static void remove (const T &) { }
+    void remove (const T &) { }
 };
 
 /// @brief A sliding window of samples
 ///
 /// @tparam T sample type
-/// @tparam P add/remove policy
-template<typename T,typename P=do_nothing>
+template<typename T>
 class sliding_window
 {
     private:
+    /// @brief window duration
     const uint64_t duration;
-    typedef std::deque<std::pair<uint64_t,T>> container;
-    container samples;
+    /// @brief two deque add/remove in lock-step
+    std::deque<uint64_t> timestamps;
+    std::deque<T> samples;
+    /// @brief indicates if the deques are full of samples
     bool full;
-    void update (uint64_t ts)
-    {
-        // remove samples with old timestamps
-        while (!samples.empty ())
-        {
-            assert (ts >= samples.back ().first);
-            // any more old samples?
-            if (ts - samples.back ().first >= duration)
-            {
-                // if we have to remove samples, then it is full
-                full = true;
-                // signal that it is being removed
-                P::remove (samples.back ().second);
-                // remove it
-                samples.pop_back ();
-            }
-            else
-                break;
-        }
-    }
     public:
     /// @brief constructor
     ///
@@ -84,18 +65,52 @@ class sliding_window
     /// @brief container access
     ///
     /// @return sliding window container
-    const container &get_samples () const
+    const std::deque<T> &get_samples () const
     {
         return samples;
     }
     /// @brief remove all samples from the window
     void clear ()
     {
-        for (auto i : samples)
-            // signal that it is being removed
-            P::remove (i.second);
+        timestamps.clear ();
         samples.clear ();
         full = false;
+    }
+    /// @brief add a sample
+    ///
+    /// @tparam U observer type
+    /// @param ts timestamp in useconds
+    /// @param s the sample
+    /// @param obs observer
+    template<typename U>
+    void add (uint64_t ts, const T &s, U &obs)
+    {
+        assert (timestamps.size () == samples.size ());
+        // add it
+        timestamps.push_front (ts);
+        samples.push_front (s);
+        // signal it was added
+        obs.add (s);
+        // assume that it's not full
+        full = false;
+        // remove samples with old timestamps
+        while (!samples.empty ())
+        {
+            assert (ts >= timestamps.back ());
+            // any more old samples?
+            if (ts - timestamps.back () >= duration)
+            {
+                // if we have to remove samples, then it is full
+                full = true;
+                // signal it was removed
+                obs.remove (samples.back ());
+                // remove it
+                timestamps.pop_back ();
+                samples.pop_back ();
+            }
+            else
+                break;
+        }
     }
     /// @brief add a sample
     ///
@@ -103,14 +118,8 @@ class sliding_window
     /// @param s the sample
     void add (uint64_t ts, const T &s)
     {
-        // signal that it is being added
-        P::add (s);
-        // add it
-        samples.emplace_front (std::make_pair (ts, s));
-        // assume that it's not full
-        full = false;
-        // remove samples with old timestamps
-        update (ts);
+        do_nothing dummy;
+        add (ts, s, dummy);
     }
 };
 

@@ -60,9 +60,9 @@ class mouse_pointer
             for (auto i : swpos.get_samples ())
             {
                 ++total;
-                p.x += i.second.x;
-                p.y += i.second.y;
-                p.z += i.second.z;
+                p.x += i.x;
+                p.y += i.y;
+                p.z += i.z;
             }
             p.x /= total;
             p.y /= total;
@@ -72,9 +72,9 @@ class mouse_pointer
             for (auto i : swdir.get_samples ())
             {
                 ++total;
-                d.x += i.second.x;
-                d.y += i.second.y;
-                d.z += i.second.z;
+                d.x += i.x;
+                d.y += i.y;
+                d.z += i.z;
             }
             d.x /= total;
             d.y /= total;
@@ -181,7 +181,7 @@ class soma_mouse : public Leap::Listener
         // TODO should get using running mode to get nfingers
         hand_samples s;
         for (auto i : swhs.get_samples ())
-            s.push_back (i.second);
+            s.push_back (i);
         // did we get anything?
         if (s.empty ())
         {

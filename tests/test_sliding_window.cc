@@ -12,56 +12,63 @@ using namespace std;
 using namespace soma;
 const string usage = "usage: test_sliding_window [verbose]";
 
-size_t count = 0;
-
 struct sample
 {
 };
 
-struct policy
+struct observer
 {
-    static void add (const sample &) { ++count; }
-    static void remove (const sample &) { --count; }
+    void add (const sample &) { ++count; }
+    void remove (const sample &) { --count; }
+    void clear () { count = 0; }
+    size_t count;
+    observer ()
+        : count (0)
+    {
+    }
 };
 
 void test_sliding_window (const bool verbose)
 {
     const uint64_t D = 100;
-    sliding_window<sample,policy> sw (D);
     sample s;
+    observer obs;
+    sliding_window<sample> sw (D);
+    vector<sample> r;
     // add with no sliding
     for (uint64_t ts = 0; ts < D; ++ts)
     {
-        VERIFY (count == ts);
+        VERIFY (obs.count == ts);
         VERIFY (sw.size () == 100 * ts / D);
         VERIFY (!sw.is_full ());
-        sw.add (ts, s);
+        sw.add (ts, s, obs);
     }
     if (verbose)
-        clog << count << ' ' << sw.size () << endl;
+        clog << obs.count << ' ' << sw.size () << endl;
     // make it slide
     for (uint64_t ts = D; ts < 2 * D; ++ts)
     {
-        VERIFY (count == D);
+        VERIFY (obs.count == D);
         VERIFY (sw.size () == 100);
-        sw.add (ts, s);
+        sw.add (ts, s, obs);
         VERIFY (sw.is_full ());
     }
     if (verbose)
-        clog << count << ' ' << sw.size () << endl;
+        clog << obs.count << ' ' << sw.size () << endl;
     // make half of them slide off
     uint64_t ts = 2 * D + D / 2;
-    sw.add (ts, s);
+    sw.add (ts, s, obs);
     if (verbose)
-        clog << count << ' ' << sw.size () << endl;
-    VERIFY (count == D / 2);
+        clog << obs.count << ' ' << sw.size () << endl;
+    VERIFY (obs.count == D / 2);
     VERIFY (sw.size () == 50);
     VERIFY (sw.is_full ());
     // clear it
     sw.clear ();
+    obs.clear ();
     if (verbose)
-        clog << count << ' ' << sw.size () << endl;
-    VERIFY (count == 0);
+        clog << obs.count << ' ' << sw.size () << endl;
+    VERIFY (obs.count == 0);
     VERIFY (sw.size () == 0);
     VERIFY (!sw.is_full ());
 }
