@@ -47,6 +47,10 @@ class finger_id_tracker
         size_t nfingers = ids.size ();
         auto last = current_ids[nfingers];
         w.add (ts, ids, *this);
+        // reset all changed flags for all fingers
+        for (auto &i : changed)
+            i.second = false;
+        // mark this one as changed
         changed[nfingers] = (last != current_ids[nfingers]);
     }
     /// @brief get the current ids
