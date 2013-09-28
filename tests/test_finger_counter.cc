@@ -53,7 +53,7 @@ void test_finger_counter2 (const bool verbose)
         // random number of fingers
         size_t n = rand () % 11;
         fc.add (i, n);
-        // keep out own sliding window
+        // keep our own sliding window
         samples.push_front (n);
         if (samples.size () > D)
             samples.pop_back ();
