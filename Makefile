@@ -3,11 +3,14 @@ all:
 	$(MAKE) -C tests
 
 run: all
-	./build/debug/soma_mouse < training.dat
+	./build/debug/finger_counter
 
 train: all
 	./build/debug/train > training.dat
 	./build/debug/classify < training.dat
+
+mouse: all
+	./build/debug/soma_mouse < training.dat
 
 check: all
 	$(MAKE) -C tests check
