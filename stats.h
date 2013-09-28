@@ -134,7 +134,8 @@ class running_mode
     public:
     /// @brief contructor
     running_mode ()
-        : count (0)
+        : m (-1)
+        , count (0)
     {
     }
     /// @brief reset to zero
@@ -187,9 +188,8 @@ class running_mode
     /// @brief get the current mode
     ///
     /// @return the mode
-    size_t mode () const
+    int mode () const
     {
-        assert (!d.empty ());
         return m;
     }
 };
