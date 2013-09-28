@@ -27,7 +27,7 @@ class grabber : public Leap::Listener
         uint64_t ts = f.timestamp ();
         // get the sample
         hand_sample hs (f.pointables ());
-        finger_id_tracker::finger_ids ids;
+        finger_ids ids;
         for (auto j : hs)
             ids.push_back (j.id);
         // add it to the tracker

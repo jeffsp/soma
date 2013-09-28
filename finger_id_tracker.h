@@ -15,12 +15,12 @@
 namespace soma
 {
 
+/// @brief finger id type
+typedef std::vector<int32_t> finger_ids;
+
 /// @brief track finger ids over a sliding window
 class finger_id_tracker
 {
-    public:
-    /// @brief finger id type
-    typedef std::vector<int32_t> finger_ids;
     private:
     /// @brief sliding window of ids
     sliding_window<finger_ids> w;
