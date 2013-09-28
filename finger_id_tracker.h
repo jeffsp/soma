@@ -44,14 +44,12 @@ class finger_id_tracker
     /// @param ids ids
     void add (uint64_t ts, const finger_ids &ids)
     {
-        size_t nfingers = ids.size ();
-        auto last = current_ids[nfingers];
+        auto last = current_ids;
         w.add (ts, ids, *this);
-        // reset all changed flags for all fingers
-        for (auto &i : changed)
-            i.second = false;
-        // mark this one as changed
-        changed[nfingers] = (last != current_ids[nfingers]);
+        // adding may have caused some samples to drop off the sliding window, so we have to see if ids have changed for
+        // all numbers of fingers
+        for (auto &i : current_ids)
+            changed[i.first] = (last[i.first] != current_ids[i.first]);
     }
     /// @brief get the current ids
     ///
