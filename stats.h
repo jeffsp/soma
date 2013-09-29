@@ -108,7 +108,6 @@ class running_mean
     void remove (const double x)
     {
         assert (total > 0);
-        assert (sum - x >= 0);
         --total;
         sum -= x;
     }
@@ -134,7 +133,7 @@ class running_mode
     public:
     /// @brief contructor
     running_mode ()
-        : m (-1)
+        : m (0)
         , count (0)
     {
     }
@@ -183,6 +182,9 @@ class running_mode
                     count = i.second;
                 }
             }
+            // set mode to some default when the dist is empty
+            if (count == 0)
+                m = 0;
         }
     }
     /// @brief get the current mode
