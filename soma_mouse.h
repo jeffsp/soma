@@ -21,15 +21,20 @@ namespace soma
 class mouse_pointer
 {
     private:
-    static const uint64_t SW_DURATION = 50000;
-    sliding_window<vec3> swpos;
+    static const uint64_t SW_DURATION = 100000;
+    sliding_window<int> swx;
+    sliding_window<int> swy;
+    running_mean x;
+    running_mean y;
     mouse &m;
     double speed;
     bool last_valid;
-    vec3 last_point;
+    double last_x;
+    double last_y;
     public:
     mouse_pointer (mouse &m, double speed)
-        : swpos (SW_DURATION)
+        : swx (SW_DURATION)
+        , swy (SW_DURATION)
         , m (m)
         , speed (speed)
         , last_valid (false)
@@ -42,34 +47,28 @@ class mouse_pointer
     }
     void clear ()
     {
-        swpos.clear ();
+        swx.clear ();
+        swy.clear ();
+        x.reset ();
+        y.reset ();
         last_valid = false;
     }
-    void update (uint64_t ts, const vec3 &pos, const vec3 &dir)
+    void update (uint64_t ts, const vec3 &pos)
     {
-        swpos.add (ts, pos);
-        if (swpos.is_full ())
+        swx.add (ts, pos.x, x);
+        swy.add (ts, pos.y, y);
+        //if (swx.is_full ())
         {
-            vec3 p;
-            size_t total = 0;
-            for (auto i : swpos.get_samples ())
-            {
-                ++total;
-                p.x += i.x;
-                p.y += i.y;
-                p.z += i.z;
-            }
-            p.x /= total;
-            p.y /= total;
-            p.z /= total;
+            //assert (swy.is_full ());
             if (last_valid)
             {
-                double x = last_point.x - p.x;
-                double y = last_point.y - p.y;
-                m.move (-x * speed, y * speed);
+                double px = last_x - x.mean ();
+                double py = last_y - y.mean ();
+                m.move (-px * speed, py * speed);
             }
             last_valid = true;
-            last_point = p;
+            last_x = x.mean ();
+            last_y = y.mean ();
         }
     }
     void center ()
@@ -107,7 +106,7 @@ class soma_mouse : public Leap::Listener
                 {
                     hand_sample tmp (hs);
                     sort (tmp.begin (), tmp.end (), sort_top_to_bottom);
-                    mp.update (ts, tmp[0].position, tmp[0].direction);
+                    mp.update (ts, tmp[0].position);
                 }
             }
             break;
