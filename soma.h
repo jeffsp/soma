@@ -7,6 +7,8 @@
 #ifndef SOMA_H
 #define SOMA_H
 
+#include "finger_counter.h"
+#include "finger_id_tracker.h"
 #include "frame_counter.h"
 #include "hand.h"
 #include "hand_sample_grabber.h"

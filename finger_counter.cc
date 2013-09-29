@@ -5,7 +5,7 @@
 /// @date 2013-09-27
 
 #include <stdexcept>
-#include "finger_counter.h"
+#include "soma.h"
 
 using namespace std;
 using namespace soma;

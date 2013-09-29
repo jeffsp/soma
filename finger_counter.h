@@ -7,7 +7,8 @@
 #ifndef FINGER_COUNTER_H
 #define FINGER_COUNTER_H
 
-#include "soma.h"
+#include "sliding_window.h"
+#include "stats.h"
 #include <cstdint>
 
 namespace soma
