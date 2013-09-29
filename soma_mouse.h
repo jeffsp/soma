@@ -21,7 +21,7 @@ namespace soma
 class mouse_pointer
 {
     private:
-    static const uint64_t SW_DURATION = 100000;
+    static const uint64_t SW_DURATION = 50000;
     sliding_window<int> swx;
     sliding_window<int> swy;
     running_mean x;
