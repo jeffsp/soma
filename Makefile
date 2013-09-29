@@ -14,6 +14,7 @@ train: all
 
 mouse: all
 	./build/debug/soma_mouse < training.dat
+	./build/release/soma_mouse < training.dat
 
 check: all
 	$(MAKE) -C tests check

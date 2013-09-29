@@ -23,16 +23,13 @@ class mouse_pointer
     private:
     static const uint64_t SW_DURATION = 50000;
     sliding_window<vec3> swpos;
-    sliding_window<vec3> swdir;
     mouse &m;
     double speed;
     bool last_valid;
     vec3 last_point;
-    vec3 last_dir;
     public:
     mouse_pointer (mouse &m, double speed)
         : swpos (SW_DURATION)
-        , swdir (SW_DURATION)
         , m (m)
         , speed (speed)
         , last_valid (false)
@@ -46,13 +43,11 @@ class mouse_pointer
     void clear ()
     {
         swpos.clear ();
-        swdir.clear ();
         last_valid = false;
     }
     void update (uint64_t ts, const vec3 &pos, const vec3 &dir)
     {
         swpos.add (ts, pos);
-        swdir.add (ts, dir);
         if (swpos.is_full ())
         {
             vec3 p;
@@ -67,32 +62,14 @@ class mouse_pointer
             p.x /= total;
             p.y /= total;
             p.z /= total;
-            vec3 d;
-            total = 0;
-            for (auto i : swdir.get_samples ())
-            {
-                ++total;
-                d.x += i.x;
-                d.y += i.y;
-                d.z += i.z;
-            }
-            d.x /= total;
-            d.y /= total;
-            d.z /= total;
             if (last_valid)
             {
-                double x1 = last_point.x - p.x;
-                double y1 = last_point.y - p.y;
-                const double zscale = 5;
-                double x2 = zscale * (last_dir.x - dir.x);
-                double y2 = zscale * (last_dir.y - dir.y);
-                double x = x1 + x2;
-                double y = y1 + y2;
+                double x = last_point.x - p.x;
+                double y = last_point.y - p.y;
                 m.move (-x * speed, y * speed);
             }
             last_valid = true;
             last_point = p;
-            last_dir = d;
         }
     }
     void center ()
