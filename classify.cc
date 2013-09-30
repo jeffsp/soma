@@ -20,15 +20,14 @@ void classify (hand_sample_grabber &g, const hand_shape_classifier &hsc)
         g.grab (SAMPLE_DURATION);
         hand_samples s = g.get_hand_samples ();
         assert (!s.empty ());
-        // filter out bad samples
-        hand_samples fs = filter (s);
         // end if you show 6 or more fingers
-        if (!fs.empty () && fs[0].size () > 5)
+        vector<int> tmp;
+        for (auto i : s)
+            tmp.push_back (i.size ());
+        if (mode (tmp) > 5)
             break;
-        //const size_t nf = s.size () - fs.size ();
-        //clog << "filtered out " << nf << " samples" << endl;
         // convert them to feature vectors
-        vector<hand_shape_features> fv (fs.begin (), fs.end ());
+        vector<hand_shape_features> fv (s.begin (), s.end ());
         // classify them
         map<hand_shape,double> l;
         hand_shape best_hs = hsc.classify (fv.begin (), fv.end (), l);
