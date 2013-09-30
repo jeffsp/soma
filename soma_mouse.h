@@ -57,19 +57,15 @@ class mouse_pointer
     {
         swx.add (ts, pos.x, x);
         swy.add (ts, pos.y, y);
-        //if (swx.is_full ())
+        if (last_valid)
         {
-            //assert (swy.is_full ());
-            if (last_valid)
-            {
-                double px = last_x - x.mean ();
-                double py = last_y - y.mean ();
-                m.move (-px * speed, py * speed);
-            }
-            last_valid = true;
-            last_x = x.mean ();
-            last_y = y.mean ();
+            double px = last_x - x.mean ();
+            double py = last_y - y.mean ();
+            m.move (-px * speed, py * speed);
         }
+        last_valid = true;
+        last_x = x.mean ();
+        last_y = y.mean ();
     }
     void center ()
     {
@@ -111,8 +107,10 @@ class soma_mouse : public Leap::Listener
             }
             break;
             case 2:
+            mp.clear ();
             break;
             case 3:
+            mp.clear ();
             break;
             case 4:
             mp.clear ();
@@ -139,6 +137,8 @@ class soma_mouse : public Leap::Listener
     }
     virtual void onFrame (const Leap::Controller& c)
     {
+        if (done)
+            return;
         // get the frame
         Leap::Frame f = c.frame ();
         uint64_t ts = f.timestamp ();
@@ -148,13 +148,18 @@ class soma_mouse : public Leap::Listener
         swhs.add (ts, hs);
         // update frame counter
         fc.update (ts);
-        // only operate when we have some samples
-        if (!swhs.is_full ())
-        {
-            update (ts, -1, hs);
-            return;
-        }
-        // TODO should get using running mode to get nfingers
+        // TODO Start
+        // update finger counter
+        // update finger id tracker
+        // update sw of hand samples
+        // update sw of feature vectors
+        // determine if we need to get hand shape classification
+        //    - new hand shape classification should be run every 50ms or so
+        //    - if yes, run through samples and determine if more than 50% have same # of fingers
+        //    - if yes, run through samples and determine if more than 50% have same finegr ids
+        //    - if it all checks out, get new hand shape
+        // update mouse pointer
+        // TODO End
         hand_samples s;
         for (auto i : swhs.get_samples ())
             s.push_back (i);
@@ -165,23 +170,22 @@ class soma_mouse : public Leap::Listener
             return;
         }
         // filter out bad samples
-        hand_samples fs = filter (s);
-        const size_t nf = s.size () - fs.size ();
+        //hand_samples fs = filter (s);
+        //const size_t nf = s.size () - fs.size ();
         // make sure they are reliable samples
-        if (100 * nf / s.size () > 25) // more than 25%?
-        {
-            update (ts, -1, hs);
-            return;
-        }
+        //if (100 * nf / s.size () > 25) // more than 25%?
+        //{
+        //    update (ts, -1, hs);
+        //    return;
+        //}
         // end if you show 6 or more fingers
-        if (!fs.empty () && fs[0].size () > 5)
+        if (!s.empty () && s[0].size () > 5)
         {
-            update (ts, -1, hs);
             done = true;
             return;
         }
         // convert them to feature vectors
-        std::vector<hand_shape_features> fv (fs.begin (), fs.end ());
+        std::vector<hand_shape_features> fv (s.begin (), s.end ());
         // classify them
         std::map<hand_shape,double> l;
         hand_shape shape = hsc.classify (fv.begin (), fv.end (), l);
