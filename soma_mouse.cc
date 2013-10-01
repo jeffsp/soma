@@ -41,18 +41,15 @@ int main (int argc, char **argv)
                 read (opts, config_fn);
         }
 
-        clog << "reading classifier from stdin" << endl;
-        hand_shape_classifier hsc;
-        cin >> hsc;
-
-        soma_mouse sm (opts, hsc);
+        soma_mouse sm (opts);
         Leap::Controller c (sm);
+
+        clog << "6 fingers = quit" << endl;
 
         // receive frames even when you don't have focus
         c.setPolicyFlags (Leap::Controller::POLICY_BACKGROUND_FRAMES);
 
-        clog << "6 fingers = quit" << endl;
-
+        // loop
         while (!sm.is_done ())
             usleep (5000);
 
