@@ -5,16 +5,15 @@ all:
 run: all
 	./build/debug/finger_id_tracker
 
-finger_counter: all
+count: all
 	./build/debug/finger_counter
 
-train: all
-	./build/debug/train > training.dat
-	./build/debug/classify < training.dat
+classify: all
+	./build/debug/hand_shape_classifier
 
 mouse: all
-	./build/debug/soma_mouse < training.dat
-	./build/release/soma_mouse < training.dat
+	./build/debug/soma_mouse
+	./build/release/soma_mouse
 
 check: all
 	$(MAKE) -C tests check
