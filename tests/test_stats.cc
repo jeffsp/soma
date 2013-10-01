@@ -31,34 +31,34 @@ void test_running_stats (const bool verbose)
     running_mean a;
     a.add (1); a.add (2); a.add (3); a.add (4); a.add (5);
     if (verbose)
-        clog << "running_mean=" << a.mean () << endl;
-    VERIFY (a.mean () == 3);
+        clog << "running_mean=" << a.get_mean () << endl;
+    VERIFY (a.get_mean () == 3);
     a.add (6); a.add (7);
     if (verbose)
-        clog << "running_mean=" << a.mean () << endl;
-    VERIFY (a.mean () == 4);
+        clog << "running_mean=" << a.get_mean () << endl;
+    VERIFY (a.get_mean () == 4);
     a.remove (1); a.remove (2);
     if (verbose)
-        clog << "running_mean=" << a.mean () << endl;
-    VERIFY (a.mean () == 5);
+        clog << "running_mean=" << a.get_mean () << endl;
+    VERIFY (a.get_mean () == 5);
     running_mode b;
     b.add (7); b.add (1); b.add (3); b.add (4); b.add (3); b.add (3); b.add (7); b.add (9);
     if (verbose)
-        clog << "running_mode=" << b.mode () << endl;
-    VERIFY (b.mode () == 3);
+        clog << "running_mode=" << b.get_mode () << endl;
+    VERIFY (b.get_mode () == 3);
     b.add (7); b.add (7);
     if (verbose)
-        clog << "running_mode=" << b.mode () << endl;
-    VERIFY (b.mode () == 7);
+        clog << "running_mode=" << b.get_mode () << endl;
+    VERIFY (b.get_mode () == 7);
     // both 3 and 7 are the mode-- the mode shouldn't change
     b.remove (7);
     if (verbose)
-        clog << "running_mode=" << b.mode () << endl;
-    VERIFY (b.mode () == 7);
+        clog << "running_mode=" << b.get_mode () << endl;
+    VERIFY (b.get_mode () == 7);
     b.remove (7);
     if (verbose)
-        clog << "running_mode=" << b.mode () << endl;
-    VERIFY (b.mode () == 3);
+        clog << "running_mode=" << b.get_mode () << endl;
+    VERIFY (b.get_mode () == 3);
 }
 
 int main (int argc, char **)
