@@ -3,7 +3,7 @@ all:
 	$(MAKE) -C tests
 
 run: all
-	./build/debug/finger_id_tracker
+	./build/debug/soma_mouse
 
 count: all
 	./build/debug/finger_counter
