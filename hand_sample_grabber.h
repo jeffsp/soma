@@ -7,7 +7,7 @@
 #ifndef HAND_SAMPLE_GRABBBER_H
 #define HAND_SAMPLE_GRABBBER_H
 
-#include "hand.h"
+#include "hand_sample.h"
 #include <unistd.h>
 
 namespace soma

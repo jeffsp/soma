@@ -7,7 +7,7 @@
 #ifndef HAND_SHAPE_CLASSIFIER_H
 #define HAND_SHAPE_CLASSIFIER_H
 
-#include "hand.h"
+#include "hand_sample.h"
 #include <limits>
 
 namespace soma

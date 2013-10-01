@@ -8,9 +8,8 @@
 #define SOMA_H
 
 #include "finger_counter.h"
-#include "finger_id_tracker.h"
 #include "frame_counter.h"
-#include "hand.h"
+#include "hand_sample.h"
 #include "hand_sample_grabber.h"
 #include "hand_shape_classifier.h"
 #include "hand_traits.h"
