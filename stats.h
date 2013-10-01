@@ -60,19 +60,32 @@ double mean (const T &x)
 ///
 /// @return the variance
 template<typename T>
-double variance (const T &x)
+double variance (const T beg, const T end)
 {
-    if (x.empty ())
+    size_t sz = end - beg;
+    if (sz == 0)
         return 0.0;
     double sum2 = 0.0;
     double sum = 0.0;
-    for (auto i : x)
+    for (T i = beg; i != end; ++i)
     {
-        sum2 += (i * i);
-        sum += i;
+        sum2 += (*i * *i);
+        sum += *i;
     }
     // var = E[x^2]-E[x]^2
-    return (sum2 / x.size ()) - (sum / x.size ()) * (sum / x.size ());
+    return (sum2 / sz) - (sum / sz) * (sum / sz);
+}
+
+/// @brief get the variance of a container of numbers
+///
+/// @tparam T container type
+/// @param x
+///
+/// @return the variance
+template<typename T>
+double variance (const T &x)
+{
+    return variance (x.begin (), x.end ());
 }
 
 /// @brief keep a running sum and total that you can add and remove numbers from
