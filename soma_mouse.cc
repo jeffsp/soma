@@ -54,7 +54,7 @@ int main (int argc, char **argv)
         clog << "6 fingers = quit" << endl;
 
         while (!sm.is_done ())
-            usleep (10000);
+            usleep (5000);
 
         usleep (1000000);
 
