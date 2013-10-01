@@ -11,6 +11,7 @@
 const int MAJOR_REVISION = 0;
 const int MINOR_REVISION = 1;
 
+#include "keyboard.h"
 #include "mouse_pointer.h"
 #include "options.h"
 #include "soma.h"
@@ -18,15 +19,71 @@ const int MINOR_REVISION = 1;
 namespace soma
 {
 
+class time_guard
+{
+    private:
+    uint64_t ts;
+    uint64_t duration;
+    public:
+    time_guard ()
+        : ts (0)
+        , duration (0)
+    {
+    }
+    void turn_on (uint64_t t, uint64_t d)
+    {
+        ts = t;
+        duration = d;
+    }
+    bool is_on (uint64_t t)
+    {
+        assert (t >= ts);
+        return (t - ts) < duration;
+    }
+};
+
 class soma_mouse : public Leap::Listener
 {
     private:
+    static const uint64_t CLICK_GUARD_DURATION = 300000;
     bool done;
     const options &opts;
     hand_shape_classifier hsc;
     mouse_pointer mp;
     frame_counter fc;
     mouse m;
+    keyboard k;
+    time_guard can_click;
+    void check_click (uint64_t ts)
+    {
+        if (can_click.is_on (ts))
+            return;
+        std::vector<int> s = k.key_states ();
+        // was shift pressed?
+        if (s[0] || s[1])
+        {
+            // guard it so we don't click mutliple times
+            can_click.turn_on (ts, CLICK_GUARD_DURATION);
+            // left click down
+            m.click (1, 1);
+            // wait to release
+            usleep (10000);
+            // left click up
+            m.click (1, 0);
+        }
+        // was alt pressed?
+        else if (s[2] || s[3])
+        {
+            // guard it so we don't click mutliple times
+            can_click.turn_on (ts, CLICK_GUARD_DURATION);
+            // right click down
+            m.click (3, 1);
+            // wait to release
+            usleep (10000);
+            // right click up
+            m.click (3, 0);
+        }
+    }
     void update (uint64_t ts, const hand_shape shape, const hand_sample &s)
     {
         switch (shape)
@@ -49,6 +106,7 @@ class soma_mouse : public Leap::Listener
                     sort (tmp.begin (), tmp.end (), sort_top_to_bottom);
                     mp.update (ts, tmp[0].position);
                 }
+                check_click (ts);
             }
             break;
             case hand_shape::scrolling:
