@@ -15,6 +15,10 @@ mouse: all
 	./build/debug/soma_mouse
 	./build/release/soma_mouse
 
+keyboard: all
+	./build/debug/keyboard
+	./build/release/keyboard
+
 check: all
 	$(MAKE) -C tests check
 
