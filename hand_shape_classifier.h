@@ -8,6 +8,7 @@
 #define HAND_SHAPE_CLASSIFIER_H
 
 #include "hand_sample.h"
+#include "sliding_window.h"
 #include "finger_counter.h"
 #include <string>
 
@@ -44,41 +45,61 @@ class hand_shape_classifier
 {
     private:
     finger_counter fc;
+    static const uint64_t D = 100000;
+    sliding_window<hand_sample> swhs;
     hand_shape current;
     bool changed;
-    void update ()
+    void update_finger_count2 (const hand_sample &s)
     {
-        if (fc.has_changed ())
+        // if the sample does not have two fingers, we are intrasition, so don't change anything
+        if (s.size () != 2)
+            return;
+        // get slope of two fingers in xy plane
+        vec3 p0 = s[0].position;
+        vec3 p1 = s[1].position;
+        // make sure first is lower than second
+        if (p0.y > p1.y)
+            std::swap (p0, p1);
+        // get the angle
+        float dx = abs (p0.x- p1.x);
+        float dy = abs (p0.y- p1.y);
+        float slope = atan2 (dy, dx) * 180 / M_PI;
+        if (slope < 45)
+            current = hand_shape::scrolling;
+        else
+            current = hand_shape::pointing;
+    }
+    void update (const hand_sample &s)
+    {
+        switch (fc.get_count ())
         {
-            switch (fc.get_count ())
-            {
-                default:
-                    current = hand_shape::unknown;
-                break;
-                case 0:
-                    current = hand_shape::zero;
-                break;
-                case 1:
-                    current = hand_shape::pointing;
-                break;
-                case 2:
-                    current = hand_shape::scrolling;
-                break;
-                case 3:
-                    current = hand_shape::ok;
-                break;
-                case 4:
-                    current = hand_shape::unknown;
-                break;
-                case 5:
-                    current = hand_shape::center;
-                break;
-            }
+            default:
+                current = hand_shape::unknown;
+            break;
+            case 0:
+                current = hand_shape::zero;
+            break;
+            case 1:
+                current = hand_shape::pointing;
+            break;
+            case 2:
+                update_finger_count2 (s);
+            break;
+            case 3:
+                current = hand_shape::ok;
+            break;
+            case 4:
+                current = hand_shape::unknown;
+            break;
+            case 5:
+                current = hand_shape::center;
+            break;
         }
     }
     public:
     hand_shape_classifier (uint64_t duration)
         : fc (duration)
+        , swhs (D)
         , current (hand_shape::unknown)
         , changed (false)
     {
@@ -87,7 +108,8 @@ class hand_shape_classifier
     {
         hand_shape last = current;
         fc.add (ts, s.size ());
-        update ();
+        swhs.add (ts, s);
+        update (s);
         changed = (last != current);
     }
     hand_shape get_shape () const
