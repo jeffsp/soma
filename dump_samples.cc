@@ -17,10 +17,12 @@ class soma_dumper : public Leap::Listener
     const int n;
     bool done;
     frame_counter frc;
+    uint64_t start_ts;
     public:
     soma_dumper (unsigned n)
         : n (n)
         , done (false)
+        , start_ts (0)
     {
     }
     bool is_done () const
@@ -32,7 +34,10 @@ class soma_dumper : public Leap::Listener
         if (done)
             return;
         const Leap::Frame &f = c.frame ();
-        frc.update (f.timestamp ());
+        uint64_t ts = f.timestamp ();
+        if (start_ts == 0)
+            start_ts = ts;
+        frc.update (ts);
         Leap::PointableList p = f.pointables ();
         if (p.count () == 6)
         {
@@ -40,6 +45,7 @@ class soma_dumper : public Leap::Listener
         }
         else if (p.count () == n)
         {
+            cout << ts - start_ts;
             for (int i = 0; i < p.count (); ++i)
             {
                 cout << ' ' << p[i].tipPosition ().x;
