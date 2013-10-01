@@ -37,15 +37,12 @@ class sliding_window
     /// @brief two deque add/remove in lock-step
     std::deque<uint64_t> timestamps;
     std::deque<T> samples;
-    /// @brief indicates if the deques are full of samples
-    bool full;
     public:
     /// @brief constructor
     ///
     /// @param duration duration of the window in useconds
     sliding_window (uint64_t duration)
         : duration (duration)
-        , full (false)
     {
     }
     /// @brief size of container
@@ -55,12 +52,15 @@ class sliding_window
     {
         return samples.size ();
     }
-    /// @brief is the window full
+    /// @brief indicates how full the buffer is
     ///
-    /// @return true if full
-    bool is_full () const
+    /// @return 0.0 for empty, 1.0 for full
+    float fullness (uint64_t ts) const
     {
-        return full;
+        if (timestamps.empty ())
+            return 0.0;
+        assert (ts >= timestamps.back ());
+        return static_cast<float> (ts - timestamps.back ()) / duration;
     }
     /// @brief container access
     ///
@@ -74,7 +74,6 @@ class sliding_window
     {
         timestamps.clear ();
         samples.clear ();
-        full = false;
     }
     /// @brief add a sample
     ///
@@ -91,8 +90,6 @@ class sliding_window
         samples.push_front (s);
         // signal it was added
         obs.add (s);
-        // assume that it's not full
-        full = false;
         // remove samples with old timestamps
         while (!samples.empty ())
         {
@@ -100,8 +97,6 @@ class sliding_window
             // any more old samples?
             if (ts - timestamps.back () >= duration)
             {
-                // if we have to remove samples, then it is full
-                full = true;
                 // signal it was removed
                 obs.remove (samples.back ());
                 // remove it
