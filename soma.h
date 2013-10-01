@@ -10,7 +10,6 @@
 #include "finger_counter.h"
 #include "frame_counter.h"
 #include "hand_sample.h"
-#include "hand_sample_grabber.h"
 #include "hand_shape_classifier.h"
 #include "hand_traits.h"
 #include "sliding_window.h"
