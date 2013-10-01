@@ -46,7 +46,7 @@ class finger_counter
         , mode_ratio (mode_ratio)
     {
     }
-    /// @brief add a samples
+    /// @brief add a sample
     ///
     /// @param ts timestamp
     /// @param nfingers sample

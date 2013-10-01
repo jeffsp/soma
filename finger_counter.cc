@@ -50,8 +50,10 @@ int main (int argc, char **argv)
 
         // receive frames even when you don't have focus
         c.setPolicyFlags (Leap::Controller::POLICY_BACKGROUND_FRAMES);
+
+        // loop
         while (1)
-            usleep (100000);
+            usleep (5000);
 
         return 0;
     }
