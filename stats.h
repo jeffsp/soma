@@ -127,7 +127,7 @@ class running_mean
     /// @brief get the current mean
     ///
     /// @return the mean
-    double mean () const
+    double get_mean () const
     {
         return static_cast<double> (sum) / total;
     }
@@ -203,9 +203,16 @@ class running_mode
     /// @brief get the current mode
     ///
     /// @return the mode
-    int mode () const
+    int get_mode () const
     {
         return m;
+    }
+    /// @brief get the current mode's count
+    ///
+    /// @return the mode
+    int get_count () const
+    {
+        return count;
     }
 };
 
