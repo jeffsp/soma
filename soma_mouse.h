@@ -59,13 +59,13 @@ class mouse_pointer
         swy.add (ts, pos.y, y);
         if (last_valid)
         {
-            double px = last_x - x.mean ();
-            double py = last_y - y.mean ();
+            double px = last_x - x.get_mean ();
+            double py = last_y - y.get_mean ();
             m.move (-px * speed, py * speed);
         }
         last_valid = true;
-        last_x = x.mean ();
-        last_y = y.mean ();
+        last_x = x.get_mean ();
+        last_y = y.get_mean ();
     }
     void center ()
     {
