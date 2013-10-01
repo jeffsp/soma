@@ -40,7 +40,7 @@ void test_sliding_window (const bool verbose)
     {
         VERIFY (obs.count == ts);
         VERIFY (sw.size () == 100 * ts / D);
-        VERIFY (!sw.is_full ());
+        VERIFY (sw.fullness (ts) < 1.0);
         sw.add (ts, s, obs);
     }
     if (verbose)
@@ -51,7 +51,7 @@ void test_sliding_window (const bool verbose)
         VERIFY (obs.count == D);
         VERIFY (sw.size () == 100);
         sw.add (ts, s, obs);
-        VERIFY (sw.is_full ());
+        VERIFY (sw.fullness (ts) > 0.98);
     }
     if (verbose)
         clog << obs.count << ' ' << sw.size () << endl;
@@ -62,7 +62,7 @@ void test_sliding_window (const bool verbose)
         clog << obs.count << ' ' << sw.size () << endl;
     VERIFY (obs.count == D / 2);
     VERIFY (sw.size () == 50);
-    VERIFY (sw.is_full ());
+    VERIFY (sw.fullness (ts) > 0.98);
     // clear it
     sw.clear ();
     obs.clear ();
@@ -70,7 +70,7 @@ void test_sliding_window (const bool verbose)
         clog << obs.count << ' ' << sw.size () << endl;
     VERIFY (obs.count == 0);
     VERIFY (sw.size () == 0);
-    VERIFY (!sw.is_full ());
+    VERIFY (sw.fullness (ts) == 0.0);
 }
 
 int main (int argc, char **)
