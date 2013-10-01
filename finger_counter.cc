@@ -44,7 +44,7 @@ int main (int argc, char **argv)
 
         clog << "Press CTRL-C to exit" << endl;
 
-        static const uint64_t WINDOW_DURATION = 1000000;
+        static const uint64_t WINDOW_DURATION = 200000;
         grabber g (WINDOW_DURATION);
         Leap::Controller c (g);
 
