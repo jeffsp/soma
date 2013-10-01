@@ -91,7 +91,7 @@ class finger_id_tracker
         for (size_t i = 0; i < ids.size (); ++i)
         {
             modes[nfingers][i].add (ids[i]);
-            current_ids[nfingers][i] = modes[nfingers][i].mode ();
+            current_ids[nfingers][i] = modes[nfingers][i].get_mode ();
         }
     }
     /// @brief observer callback
@@ -105,7 +105,7 @@ class finger_id_tracker
             assert (i < modes[nfingers].size ());
             assert (i < current_ids[nfingers].size ());
             modes[nfingers][i].remove (ids[i]);
-            current_ids[nfingers][i] = modes[nfingers][i].mode ();
+            current_ids[nfingers][i] = modes[nfingers][i].get_mode ();
         }
     }
 };
