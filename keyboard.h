@@ -23,7 +23,7 @@ class keyboard
     private:
     FILE *fp;
     public:
-    keyboard (const std::string &fn = std::string ("/dev/input/event8"))
+    keyboard (const std::string &fn = std::string ("/dev/input/event4"))
     {
         std::clog << "opening " << fn.c_str () << std::endl;
         fp = fopen (fn.c_str (), "r");
