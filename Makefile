@@ -8,6 +8,9 @@ run: all
 count: all
 	./build/debug/finger_counter
 
+ids: all
+	./build/debug/finger_id_tracker
+
 classify: all
 	./build/debug/hand_shape_classifier
 
