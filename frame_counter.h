@@ -8,6 +8,7 @@
 #define FRAME_COUNTER_H
 
 #include <cstdint>
+#include <unistd.h>
 
 namespace soma
 {

@@ -15,6 +15,7 @@ const int MINOR_REVISION = 1;
 #include "mouse_pointer.h"
 #include "options.h"
 #include "soma.h"
+#include <unistd.h>
 
 namespace soma
 {
