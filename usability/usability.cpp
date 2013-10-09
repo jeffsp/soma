@@ -269,7 +269,9 @@ ButtonTab::ButtonTab(QWidget *parent, ResultsTab *resultsTab)
     height = r.bottom ();
     label->move (width / 2, height / 2);
     button->move (width / 2, height / 2);
+    button->setContextMenuPolicy (Qt::CustomContextMenu);
     connect(button, SIGNAL(clicked()), this, SLOT(click()));
+    connect(button, SIGNAL(customContextMenuRequested(const QPoint &)), this, SLOT(click()));
 }
 
 /// @brief control the cursor test with the keyboard
