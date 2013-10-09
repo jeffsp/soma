@@ -117,14 +117,67 @@ class ButtonTab : public QWidget
     Q_OBJECT
     /// @brief access to results
     ResultsTab *resultsTab;
+    QLabel *label;
+    QPushButton *button;
+    bool testing;
+    void start_test ();
+    void stop_test ();
+    /// @brief for timing
+    QTime start_time;
+    /// @brief click counter
+    int clicks;
+    int width;
+    int height;
     public:
     /// @brief constructor
     ///
     /// @param parent widget
     /// @param access to results
     ButtonTab(QWidget *parent, ResultsTab *results);
+    /// @brief override
+    ///
+    /// @param control tests
+    void keyPressEvent (QKeyEvent *);
+    /// @brief testing flag access
+    ///
+    /// @return testing flag
+    bool getTesting () const;
+    /// @brief testing flag access
+    ///
+    /// @param f testing flag
+    void setTesting (bool f);
+    public slots:
+    /// @brief button click slot
+    void click ();
 };
 
+/// @brief button test tab
+class ScrollTab : public QWidget
+{
+    Q_OBJECT
+    /// @brief access to results
+    ResultsTab *resultsTab;
+    public:
+    /// @brief constructor
+    ///
+    /// @param parent widget
+    /// @param access to results
+    ScrollTab(QWidget *parent, ResultsTab *results);
+};
+
+/// @brief button test tab
+class DragTab : public QWidget
+{
+    Q_OBJECT
+    /// @brief access to results
+    ResultsTab *resultsTab;
+    public:
+    /// @brief constructor
+    ///
+    /// @param parent widget
+    /// @param access to results
+    DragTab(QWidget *parent, ResultsTab *results);
+};
 
 /// @brief dialog that contains usability test tabs
 class UsabilityDialog : public QDialog
@@ -143,6 +196,8 @@ class UsabilityDialog : public QDialog
     /// @brief tabs
     CursorTab *cursorTab;
     ButtonTab *buttonTab;
+    ScrollTab *scrollTab;
+    DragTab *dragTab;
     ResultsTab *resultsTab;
 };
 

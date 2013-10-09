@@ -19,14 +19,19 @@ UsabilityDialog::UsabilityDialog(QWidget *parent)
     resultsTab = new ResultsTab(this);
     cursorTab = new CursorTab(this, resultsTab);
     buttonTab = new ButtonTab(this, resultsTab);
+    scrollTab = new ScrollTab(this, resultsTab);
+    dragTab = new DragTab(this, resultsTab);
     // add them to the tab widget
     tabWidget->addTab(cursorTab, tr("Follow the Cursor"));
     tabWidget->addTab(buttonTab, tr("Buttons"));
+    tabWidget->addTab(scrollTab, tr("Scroll"));
+    tabWidget->addTab(dragTab, tr("Drag"));
     tabWidget->addTab(resultsTab, tr("Results"));
     // set focus to client area.  this has to be done after the cursor view is constructed.
     cursorTab->getCursorView ()->setFocus ();
     // add the OK/Cancel buttons
-    buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    //buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    buttonBox = new QDialogButtonBox(QDialogButtonBox::Cancel);
     connect(buttonBox, SIGNAL(accepted()), this, SLOT(accept()));
     connect(buttonBox, SIGNAL(rejected()), this, SLOT(reject()));
     // set the layout
@@ -250,11 +255,116 @@ void CursorTab::keyPressEvent (QKeyEvent *e)
 ButtonTab::ButtonTab(QWidget *parent, ResultsTab *resultsTab)
     : QWidget(parent)
     , resultsTab (resultsTab)
+    , testing (false)
+{
+    button = new QPushButton("Click Me");
+    label = new QLabel("Click the buttons as fast as you can.  Press SPACE to begin.");
+    label->setVisible (true);
+    button->setFixedSize(80,30);
+    button->setVisible (false);
+    label->setParent (this);
+    button->setParent (this);
+    QRect r = parent->geometry ();
+    width = r.right ();
+    height = r.bottom ();
+    label->move (width / 2, height / 2);
+    button->move (width / 2, height / 2);
+    connect(button, SIGNAL(clicked()), this, SLOT(click()));
+}
+
+/// @brief control the cursor test with the keyboard
+///
+/// @param e keyboard event
+void ButtonTab::keyPressEvent (QKeyEvent *e)
+{
+    switch (e->key())
+    {
+        // on SPACEBAR, start the test
+        case ' ':
+        setTesting (!getTesting ());
+        break;
+    }
+    // call through to base class
+    QWidget::keyPressEvent (e);
+}
+
+/// @brief access function
+///
+/// @return testing flag
+bool ButtonTab::getTesting () const
+{
+    return testing;
+}
+
+/// @brief access function
+///
+/// @param f testing flag
+void ButtonTab::setTesting (bool f)
+{
+    testing = f;
+    if (testing)
+        start_test ();
+    else
+        stop_test ();
+}
+
+void ButtonTab::click ()
+{
+    ++clicks;
+    if (clicks == 10)
+        setTesting (false);
+    button->move (qrand () % width, qrand () % height);
+    setFocus ();
+}
+
+void ButtonTab::start_test ()
+{
+    label->setVisible (false);
+    button->setVisible (true);
+    start_time.start ();
+    clicks = 0;
+}
+
+void ButtonTab::stop_test ()
+{
+    label->setVisible (true);
+    button->setVisible (false);
+    int elapsed = start_time.elapsed ();
+    float secs = elapsed / 1000.0f;
+    QString s;
+    s.sprintf ("ButtonTest:clicks %d", clicks);
+    qDebug () << s;
+    s.sprintf ("ButtonTest:seconds %f", secs);
+    qDebug () << s;
+    float cps = 0.0;
+    if (elapsed)
+        cps = clicks / secs;
+    s.sprintf ("ButtonTest:clicks/sec %f", cps);
+    // report it
+    resultsTab->Add (s); qDebug () << s;
+}
+
+/// @brief constructor
+///
+/// @param parent parent widget
+/// @param access to results
+ScrollTab::ScrollTab(QWidget *parent, ResultsTab *resultsTab)
+    : QWidget(parent)
+    , resultsTab (resultsTab)
 {
     QHBoxLayout *mainLayout = new QHBoxLayout;
-    QPushButton *button = new QPushButton("Click Me");
-    button->setFixedSize(100,30);
-    mainLayout->addWidget(button);
+    setLayout(mainLayout);
+}
+
+/// @brief constructor
+///
+/// @param parent parent widget
+/// @param access to results
+DragTab::DragTab(QWidget *parent, ResultsTab *resultsTab)
+    : QWidget(parent)
+    , resultsTab (resultsTab)
+{
+    QHBoxLayout *mainLayout = new QHBoxLayout;
     setLayout(mainLayout);
 }
 
