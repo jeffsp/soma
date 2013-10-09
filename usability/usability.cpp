@@ -260,6 +260,7 @@ ButtonTab::ButtonTab(QWidget *parent, ResultsTab *resultsTab)
     button = new QPushButton("Click Me");
     label = new QLabel("Click the buttons as fast as you can.  Press SPACE to begin.");
     label->setVisible (true);
+    label->setFont (QFont ("Arial", 18, QFont::Bold));
     button->setFixedSize(80,30);
     button->setVisible (false);
     label->setParent (this);
@@ -274,7 +275,7 @@ ButtonTab::ButtonTab(QWidget *parent, ResultsTab *resultsTab)
     connect(button, SIGNAL(customContextMenuRequested(const QPoint &)), this, SLOT(click()));
 }
 
-/// @brief control the cursor test with the keyboard
+/// @brief control the button test with the keyboard
 ///
 /// @param e keyboard event
 void ButtonTab::keyPressEvent (QKeyEvent *e)
@@ -353,9 +354,98 @@ void ButtonTab::stop_test ()
 ScrollTab::ScrollTab(QWidget *parent, ResultsTab *resultsTab)
     : QWidget(parent)
     , resultsTab (resultsTab)
+    , testing (false)
 {
-    QHBoxLayout *mainLayout = new QHBoxLayout;
-    setLayout(mainLayout);
+    scroll_area = new QScrollArea (this);
+    QPalette pal (palette());
+    pal.setColor(QPalette::Background, Qt::white);
+    scroll_area->setAutoFillBackground(true);
+    scroll_area->setPalette(pal);
+    scroll_area->setWidgetResizable(true);
+    label1 = new QLabel("Scroll until the text is centered.  Press SPACE to begin.");
+    label1->setFont (QFont ("Arial", 18, QFont::Bold));
+    label1->setVisible (true);
+    label2 = new QLabel("Vertically center this text.");
+    label2->setFont (QFont ("Arial", 18, QFont::Bold));
+    label2->setVisible (false);
+    QRect r = parent->geometry ();
+    width = r.right ();
+    height = r.bottom ();
+    label1->move (width / 2, height / 2);
+    label2->move (width / 2, height / 2);
+    QVBoxLayout *mainLayout = new QVBoxLayout (scroll_area);
+    mainLayout->addWidget(label1);
+    mainLayout->addWidget(label2);
+    mainLayout->setSizeConstraint(QLayout::SetFixedSize);
+    //setLayout(mainLayout);
+    for (int i = 0; i < 100; ++i)
+    {
+        QString s = QString ("%1").arg (i);
+        mainLayout->addWidget (new QLabel(s));
+    }
+
+}
+
+/// @brief control the scroll test with the keyboard
+///
+/// @param e keyboard event
+void ScrollTab::keyPressEvent (QKeyEvent *e)
+{
+    switch (e->key())
+    {
+        // on SPACEBAR, start the test
+        case ' ':
+        setTesting (!getTesting ());
+        break;
+    }
+    // call through to base class
+    QWidget::keyPressEvent (e);
+}
+
+/// @brief access function
+///
+/// @return testing flag
+bool ScrollTab::getTesting () const
+{
+    return testing;
+}
+
+/// @brief access function
+///
+/// @param f testing flag
+void ScrollTab::setTesting (bool f)
+{
+    testing = f;
+    if (testing)
+        start_test ();
+    else
+        stop_test ();
+}
+void ScrollTab::start_test ()
+{
+    label1->setVisible (false);
+    label2->setVisible (true);
+    start_time.start ();
+    scrolls = 0;
+}
+
+void ScrollTab::stop_test ()
+{
+    label1->setVisible (true);
+    label2->setVisible (false);
+    int elapsed = start_time.elapsed ();
+    float secs = elapsed / 1000.0f;
+    QString s;
+    s.sprintf ("ScrollTest:scrolls %d", scrolls);
+    qDebug () << s;
+    s.sprintf ("ButtonTest:seconds %f", secs);
+    qDebug () << s;
+    float sps = 0.0;
+    if (elapsed)
+        sps = scrolls / secs;
+    s.sprintf ("ButtonTest:scrolls/sec %f", sps);
+    // report it
+    resultsTab->Add (s); qDebug () << s;
 }
 
 /// @brief constructor

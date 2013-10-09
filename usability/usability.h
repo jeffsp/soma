@@ -126,6 +126,7 @@ class ButtonTab : public QWidget
     QTime start_time;
     /// @brief click counter
     int clicks;
+    /// @brief for centering
     int width;
     int height;
     public:
@@ -157,12 +158,37 @@ class ScrollTab : public QWidget
     Q_OBJECT
     /// @brief access to results
     ResultsTab *resultsTab;
+    QScrollArea *scroll_area;
+    QLabel *label1;
+    QLabel *label2;
+    bool testing;
+    void start_test ();
+    void stop_test ();
+    /// @brief for timing
+    QTime start_time;
+    /// @brief scroll counter
+    int scrolls;
+    /// @brief for centering
+    int width;
+    int height;
     public:
     /// @brief constructor
     ///
     /// @param parent widget
     /// @param access to results
     ScrollTab(QWidget *parent, ResultsTab *results);
+    /// @brief override
+    ///
+    /// @param control tests
+    void keyPressEvent (QKeyEvent *);
+    /// @brief testing flag access
+    ///
+    /// @return testing flag
+    bool getTesting () const;
+    /// @brief testing flag access
+    ///
+    /// @param f testing flag
+    void setTesting (bool f);
 };
 
 /// @brief button test tab
