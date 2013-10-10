@@ -124,16 +124,7 @@ class soma_mouse : public Leap::Listener
             mp.clear ();
             break;
             case hand_shape::center:
-            if (can_center && s.size () == 5)
-            {
-                // guard it so we don't center mutliple times
-                can_center = false;
-                mp.clear ();
-                hand_sample tmp (s);
-                sort (tmp.begin (), tmp.end (), sort_left_to_right);
-                // middle finger
-                mp.center (tmp[2].position);
-            }
+            m.center ();
             break;
         }
     }
