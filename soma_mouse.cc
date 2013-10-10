@@ -53,6 +53,8 @@ int main (int argc, char **argv)
         while (!sm.is_done ())
             usleep (5000);
 
+        clog << "done" << endl;
+
         usleep (1000000);
 
         return 0;
