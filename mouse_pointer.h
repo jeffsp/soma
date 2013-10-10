@@ -15,6 +15,19 @@
 namespace soma
 {
 
+struct vec2
+{
+    vec2 () : x (0.0), y (0.0) { }
+    vec2 (const vec3 &p) : x (p.x), y (p.y) { }
+    float x, y;
+};
+
+// convert from mm to pixels at 96dpi
+double mm_to_pixels (double mm)
+{
+    return mm * 3.779527559;
+}
+
 class mouse_pointer
 {
     private:
@@ -27,10 +40,10 @@ class mouse_pointer
     mouse &m;
     double speed;
     bool last_valid;
-    vec3 last;
+    vec2 last;
     bool centered;
-    vec3 cp;
-    void update_normal (uint64_t ts, const vec3 &pos)
+    vec2 cp;
+    void update_normal (uint64_t ts, const vec2 &pos)
     {
         swx.add (ts, pos.x, smooth_x);
         swy.add (ts, pos.y, smooth_y);
@@ -38,8 +51,8 @@ class mouse_pointer
         double y = smooth_y.get_mean ();
         if (last_valid)
         {
-            double px = last.x - x;
-            double py = last.y - y;
+            double px = mm_to_pixels (last.x - x);
+            double py = mm_to_pixels (last.y - y);
             m.move (-px * speed, py * speed);
         }
         last_valid = true;
@@ -69,7 +82,7 @@ class mouse_pointer
         smooth_y.reset ();
         last_valid = false;
     }
-    void update (uint64_t ts, const vec3 &pos)
+    void update (uint64_t ts, const vec2 &pos)
     {
         double dx = cp.x - pos.x;
         double dy = cp.y - pos.y;
@@ -92,7 +105,7 @@ class mouse_pointer
                 double x = 10.0 * cos (theta);
                 double y = 10.0 * sin (theta);
                 std::clog << theta << " " << x << " " << y << std::endl;
-                vec3 tmp;
+                vec2 tmp;
                 tmp.x = last.x - x;
                 tmp.y = last.y - y;
                 update_normal (ts, tmp);
@@ -100,7 +113,7 @@ class mouse_pointer
         }
         // else do nothing
     }
-    void center (const vec3 &pos)
+    void center (const vec2 &pos)
     {
         centered = !centered;
         std::clog << "center " << (centered ? "ON" : "OFF") << std::endl;
