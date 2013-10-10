@@ -25,10 +25,12 @@ int main (int argc, char **argv)
 
         // if the config file does not exist, write one
         {
-            std::clog << "writing default configuration file " << config_fn << std::endl;
             ifstream ifs (config_fn.c_str ());
             if (!ifs)
+            {
+                std::clog << "writing default configuration file " << config_fn << std::endl;
                 write (opts, config_fn);
+            }
         }
 
         // read in the config file
