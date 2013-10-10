@@ -19,15 +19,33 @@ class mouse_pointer
 {
     private:
     static const uint64_t SW_DURATION = 50000;
+    static const unsigned RADIUS = 50;
     sliding_window<int> swx;
     sliding_window<int> swy;
-    running_mean x;
-    running_mean y;
+    running_mean smooth_x;
+    running_mean smooth_y;
     mouse &m;
     double speed;
     bool last_valid;
-    double last_x;
-    double last_y;
+    vec3 last;
+    bool centered;
+    vec3 cp;
+    void update_normal (uint64_t ts, const vec3 &pos)
+    {
+        swx.add (ts, pos.x, smooth_x);
+        swy.add (ts, pos.y, smooth_y);
+        double x = smooth_x.get_mean ();
+        double y = smooth_y.get_mean ();
+        if (last_valid)
+        {
+            double px = last.x - x;
+            double py = last.y - y;
+            m.move (-px * speed, py * speed);
+        }
+        last_valid = true;
+        last.x = x;
+        last.y = y;
+    }
     public:
     mouse_pointer (mouse &m, double speed)
         : swx (SW_DURATION)
@@ -35,6 +53,7 @@ class mouse_pointer
         , m (m)
         , speed (speed)
         , last_valid (false)
+        , centered (false)
     {
     }
     void set_speed (double s)
@@ -46,27 +65,46 @@ class mouse_pointer
     {
         swx.clear ();
         swy.clear ();
-        x.reset ();
-        y.reset ();
+        smooth_x.reset ();
+        smooth_y.reset ();
         last_valid = false;
     }
     void update (uint64_t ts, const vec3 &pos)
     {
-        swx.add (ts, pos.x, x);
-        swy.add (ts, pos.y, y);
-        if (last_valid)
+        double dx = cp.x - pos.x;
+        double dy = cp.y - pos.y;
+        double r = sqrt (dx * dx + dy * dy);
+        if (r < RADIUS || !centered)
         {
-            double px = last_x - x.get_mean ();
-            double py = last_y - y.get_mean ();
-            m.move (-px * speed, py * speed);
+            // normal mode
+            update_normal (ts, pos);
         }
-        last_valid = true;
-        last_x = x.get_mean ();
-        last_y = y.get_mean ();
+        else
+        {
+            // joystick mode
+            if (r < RADIUS * 1.2)
+                return;
+            if (!last_valid)
+                update_normal (ts, pos);
+            else
+            {
+                double theta = atan2 (dy, dx);
+                double x = 10.0 * cos (theta);
+                double y = 10.0 * sin (theta);
+                std::clog << theta << " " << x << " " << y << std::endl;
+                vec3 tmp;
+                tmp.x = last.x - x;
+                tmp.y = last.y - y;
+                update_normal (ts, tmp);
+            }
+        }
+        // else do nothing
     }
-    void center ()
+    void center (const vec3 &pos)
     {
-        m.center ();
+        centered = !centered;
+        std::clog << "center " << (centered ? "ON" : "OFF") << std::endl;
+        cp = pos;
     }
 };
 
