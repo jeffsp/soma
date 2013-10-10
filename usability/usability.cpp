@@ -350,40 +350,114 @@ void ButtonTab::stop_test ()
 /// @brief constructor
 ///
 /// @param parent parent widget
+ScrollScene::ScrollScene (QWidget * parent, ResultsTab *resultsTab)
+    : QGraphicsScene (parent)
+    , resultsTab (resultsTab)
+    , testing (false)
+    , text1 (new QGraphicsTextItem ("Scroll until the red circle is centered.  Press SPACE to begin."))
+    , text2 (new QGraphicsTextItem ("Scroll until the red circle is centered.  Press SPACE to begin."))
+{
+    // set the text font
+    text1->setFont (QFont ("Arial", 18, QFont::Bold));
+    text2->setFont (QFont ("Arial", 18, QFont::Bold));
+    QRectF r = text1->boundingRect ();
+    const size_t NCIRCLES = 100;
+    text1->setPos (-r.width () / 2, -4 * RADIUS);
+    text2->setPos (-r.width () / 2, NCIRCLES * RADIUS * 2);
+    // add it
+    addItem (text1);
+    addItem (text2);
+    // set background of client area
+    setBackgroundBrush (Qt::white);
+    circles.resize (NCIRCLES);
+    for (size_t i = 0; i < circles.size (); ++i)
+    {
+        QGraphicsEllipseItem *c = new QGraphicsEllipseItem (0);
+        c->setRect (-RADIUS, -RADIUS, RADIUS, RADIUS);
+        int y = i * RADIUS * 2;
+        c->setPos (0, y);
+        addItem (c);
+        circles[i] = c;
+    }
+}
+
+/// @brief access function
+///
+/// @return testing flag
+bool ScrollScene::getTesting () const
+{
+    return testing;
+}
+
+/// @brief access function
+///
+/// @param f testing flag
+void ScrollScene::setTesting (bool f)
+{
+    testing = f;
+    if (testing)
+        start_test ();
+    else
+        stop_test ();
+}
+
+void ScrollScene::start_test ()
+{
+    // start a new test
+    start_time.start ();
+    // reset frame counter
+    scrolls = 0;
+}
+
+void ScrollScene::stop_test ()
+{
+    // get fps
+    int elapsed = start_time.elapsed ();
+    float secs = elapsed / 1000.0f;
+    QString s;
+    s.sprintf ("ScrollTest:scrolls %d", scrolls);
+    qDebug () << s;
+    s.sprintf ("ScrollTest:seconds %f", secs);
+    qDebug () << s;
+    float sps = 0.0;
+    if (elapsed)
+        sps = scrolls / secs;
+    s.sprintf ("ScrollTest:scrolls/sec %f", sps);
+    // report results
+    resultsTab->Add (s); qDebug () << s;
+}
+
+/// @brief constructor
+///
+/// @param scene scene data
+/// @param parent parent widget
+ScrollView::ScrollView (ScrollScene * scene, QWidget * parent)
+    : QGraphicsView (scene, parent)
+    , scrollScene (scene)
+{
+}
+
+/// @brief constructor
+///
+/// @param parent parent widget
 /// @param access to results
 ScrollTab::ScrollTab(QWidget *parent, ResultsTab *resultsTab)
     : QWidget(parent)
     , resultsTab (resultsTab)
-    , testing (false)
 {
-    scroll_area = new QScrollArea (this);
-    QPalette pal (palette());
-    pal.setColor(QPalette::Background, Qt::white);
-    scroll_area->setAutoFillBackground(true);
-    scroll_area->setPalette(pal);
-    scroll_area->setWidgetResizable(true);
-    label1 = new QLabel("Scroll until the text is centered.  Press SPACE to begin.");
-    label1->setFont (QFont ("Arial", 18, QFont::Bold));
-    label1->setVisible (true);
-    label2 = new QLabel("Vertically center this text.");
-    label2->setFont (QFont ("Arial", 18, QFont::Bold));
-    label2->setVisible (false);
-    QRect r = parent->geometry ();
-    width = r.right ();
-    height = r.bottom ();
-    label1->move (width / 2, height / 2);
-    label2->move (width / 2, height / 2);
-    QVBoxLayout *mainLayout = new QVBoxLayout (scroll_area);
-    mainLayout->addWidget(label1);
-    mainLayout->addWidget(label2);
-    mainLayout->setSizeConstraint(QLayout::SetFixedSize);
-    //setLayout(mainLayout);
-    for (int i = 0; i < 100; ++i)
-    {
-        QString s = QString ("%1").arg (i);
-        mainLayout->addWidget (new QLabel(s));
-    }
-
+    // setup the scene and view
+    scrollScene = new ScrollScene (this, resultsTab);
+    scrollView = new ScrollView (scrollScene, this);
+    scrollView->setRenderHints (QPainter::Antialiasing);
+    scrollView->show ();
+    // setup the layout
+    QHBoxLayout *mainLayout = new QHBoxLayout (this);
+    mainLayout->addWidget(scrollView);
+    setLayout(mainLayout);
+    if (qrand () % 2)
+        scrollView->verticalScrollBar()->setValue(scrollView->verticalScrollBar()->maximum ());
+    else
+        scrollView->verticalScrollBar()->setValue(scrollView->verticalScrollBar()->minimum ());
 }
 
 /// @brief control the scroll test with the keyboard
@@ -395,57 +469,11 @@ void ScrollTab::keyPressEvent (QKeyEvent *e)
     {
         // on SPACEBAR, start the test
         case ' ':
-        setTesting (!getTesting ());
+        scrollScene->setTesting (!scrollScene->getTesting ());
         break;
     }
     // call through to base class
     QWidget::keyPressEvent (e);
-}
-
-/// @brief access function
-///
-/// @return testing flag
-bool ScrollTab::getTesting () const
-{
-    return testing;
-}
-
-/// @brief access function
-///
-/// @param f testing flag
-void ScrollTab::setTesting (bool f)
-{
-    testing = f;
-    if (testing)
-        start_test ();
-    else
-        stop_test ();
-}
-void ScrollTab::start_test ()
-{
-    label1->setVisible (false);
-    label2->setVisible (true);
-    start_time.start ();
-    scrolls = 0;
-}
-
-void ScrollTab::stop_test ()
-{
-    label1->setVisible (true);
-    label2->setVisible (false);
-    int elapsed = start_time.elapsed ();
-    float secs = elapsed / 1000.0f;
-    QString s;
-    s.sprintf ("ScrollTest:scrolls %d", scrolls);
-    qDebug () << s;
-    s.sprintf ("ButtonTest:seconds %f", secs);
-    qDebug () << s;
-    float sps = 0.0;
-    if (elapsed)
-        sps = scrolls / secs;
-    s.sprintf ("ButtonTest:scrolls/sec %f", sps);
-    // report it
-    resultsTab->Add (s); qDebug () << s;
 }
 
 /// @brief constructor

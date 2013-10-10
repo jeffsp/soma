@@ -152,35 +152,32 @@ class ButtonTab : public QWidget
     void click ();
 };
 
-/// @brief button test tab
-class ScrollTab : public QWidget
+/// @brief scene data for the cursor test
+class ScrollScene : public QGraphicsScene
 {
     Q_OBJECT
     /// @brief access to results
     ResultsTab *resultsTab;
-    QScrollArea *scroll_area;
-    QLabel *label1;
-    QLabel *label2;
+    /// @brief size of circle
+    static const int RADIUS = 30;
+    /// @brief flag that says if we are currently running a test
     bool testing;
-    void start_test ();
-    void stop_test ();
+    /// @brief test instructions
+    QGraphicsTextItem *text1;
+    QGraphicsTextItem *text2;
+    /// @brief displayed circles
+    std::vector<QGraphicsEllipseItem *> circles;
     /// @brief for timing
     QTime start_time;
     /// @brief scroll counter
     int scrolls;
-    /// @brief for centering
-    int width;
-    int height;
+    void start_test ();
+    void stop_test ();
     public:
     /// @brief constructor
     ///
-    /// @param parent widget
-    /// @param access to results
-    ScrollTab(QWidget *parent, ResultsTab *results);
-    /// @brief override
-    ///
-    /// @param control tests
-    void keyPressEvent (QKeyEvent *);
+    /// @param parent parent widget
+    ScrollScene (QWidget * parent, ResultsTab *resultsTab);
     /// @brief testing flag access
     ///
     /// @return testing flag
@@ -189,6 +186,48 @@ class ScrollTab : public QWidget
     ///
     /// @param f testing flag
     void setTesting (bool f);
+};
+
+/// @brief view for scroll scene data
+class ScrollView : public QGraphicsView
+{
+    Q_OBJECT
+    /// @brief scene data
+    ScrollScene *scrollScene;
+    public:
+    /// @brief constructor
+    ///
+    /// @param scene scene data
+    /// @param parent parent widget
+    ScrollView (ScrollScene *scene, QWidget * parent = 0);
+};
+
+/// @brief scroll test tab
+class ScrollTab : public QWidget
+{
+    Q_OBJECT
+    /// @brief access to results
+    ResultsTab *resultsTab;
+    /// @brief scene data
+    ScrollScene *scrollScene;
+    /// @brief scene view
+    ScrollView *scrollView;
+    public:
+    /// @brief constructor
+    ///
+    /// @param parent parent widget
+    /// @param access to results
+    ScrollTab(QWidget *parent, ResultsTab *results);
+    /// @brief override
+    ///
+    /// @param control tests
+    void keyPressEvent (QKeyEvent *);
+    /// @brief view access
+    ///
+    /// @return scroll view
+    ///
+    /// Required for setting focus AFTER the tab is visible.
+    ScrollView *getScrollView () const { return scrollView; }
 };
 
 /// @brief button test tab
