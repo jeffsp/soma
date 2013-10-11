@@ -47,7 +47,6 @@ class soma_mouse : public Leap::Listener
 {
     private:
     static const uint64_t CLICK_GUARD_DURATION = 300000;
-    static const uint64_t CENTER_GUARD_DURATION = 300000;
     bool done;
     const options &opts;
     hand_shape_classifier hsc;
@@ -56,7 +55,6 @@ class soma_mouse : public Leap::Listener
     mouse m;
     keyboard k;
     time_guard can_click;
-    bool can_center;
     void check_click (uint64_t ts)
     {
         if (can_click.guarded (ts))
@@ -98,15 +96,14 @@ class soma_mouse : public Leap::Listener
             mp.clear ();
             break;
             case hand_shape::zero:
-            can_center = true;
             mp.clear ();
             break;
             case hand_shape::pointing:
-            case hand_shape::clicking:
             {
-                can_center = true;
                 if (s.size () == 1)
+                {
                     mp.update (ts, s[0].position);
+                }
                 else if (s.size () == 2)
                 {
                     // get highest finger
@@ -116,6 +113,7 @@ class soma_mouse : public Leap::Listener
                 }
                 check_click (ts);
             }
+            case hand_shape::clicking:
             break;
             case hand_shape::scrolling:
             mp.clear ();
@@ -134,7 +132,6 @@ class soma_mouse : public Leap::Listener
         , opts (opts)
         , hsc (200000)
         , mp (m, opts.get_mouse_speed ())
-        , can_center (true)
     {
     }
     ~soma_mouse ()
