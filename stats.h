@@ -129,7 +129,7 @@ class running_mean
     /// @return the mean
     double get_mean () const
     {
-        return static_cast<double> (sum) / total;
+        return sum / total;
     }
 };
 
