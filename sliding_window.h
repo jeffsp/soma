@@ -33,7 +33,7 @@ class sliding_window
 {
     private:
     /// @brief window duration
-    const uint64_t duration;
+    uint64_t duration;
     /// @brief two deque add/remove in lock-step
     std::deque<uint64_t> timestamps;
     std::deque<T> samples;
@@ -68,6 +68,13 @@ class sliding_window
     const std::deque<T> &get_samples () const
     {
         return samples;
+    }
+    /// @brief set the window duration
+    ///
+    /// @param d
+    void set_duration (uint64_t d)
+    {
+        duration = d;
     }
     /// @brief remove all samples from the window
     void clear ()
