@@ -7,6 +7,7 @@ run: all
 
 touchport: all
 	./build/debug/touchport > touchport.txt
+	sed -i 's/[(),]//g' touchport.txt
 	cat touchport.txt
 
 count: all
