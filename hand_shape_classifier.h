@@ -51,7 +51,7 @@ class hand_shape_classifier
     bool changed;
     void update_finger_count2 (const hand_sample &s)
     {
-        // if the sample does not have two fingers, we are intrasition, so don't change anything
+        // if the sample does not have two fingers, we are in transition, so don't change anything
         if (s.size () != 2)
             return;
         // get slope of two fingers in xy plane
