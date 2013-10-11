@@ -122,7 +122,7 @@ class soma_mouse : public Leap::Listener
             mp.clear ();
             break;
             case hand_shape::center:
-            m.center ();
+            m.set (m.width () / 2, m.height () / 2);
             break;
         }
     }
