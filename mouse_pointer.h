@@ -11,6 +11,7 @@
 #include "mouse.h"
 #include "sliding_window.h"
 #include "stats.h"
+#include <fstream>
 
 namespace soma
 {
@@ -80,6 +81,38 @@ class point_delta
     }
 };
 
+std::istream& operator>> (std::istream &s, vec3 &v)
+{
+    s >> v.x;
+    s >> v.y;
+    s >> v.z;
+    return s;
+}
+
+class touchport
+{
+    private:
+    vec3 tl;
+    vec3 tr;
+    vec3 bl;
+    vec3 br;
+    public:
+    void read (std::istream &s)
+    {
+        s >> tl;
+        s >> tr;
+        s >> bl;
+        s >> br;
+    }
+    void write (std::ostream &s)
+    {
+        s << tl << std::endl;
+        s << tr << std::endl;
+        s << bl << std::endl;
+        s << br << std::endl;
+    }
+};
+
 class mouse_pointer
 {
     private:
@@ -94,6 +127,7 @@ class mouse_pointer
     mouse &m;
     double speed;
     point_delta delta;
+    touchport tl;
     public:
     mouse_pointer (mouse &m, double speed)
         : swx (SW_DURATION1)
@@ -102,6 +136,13 @@ class mouse_pointer
         , m (m)
         , speed (speed)
     {
+        std::string fn ("touchport.txt");
+        std::clog << "opening " << fn << std::endl;
+        std::ifstream ifs (fn.c_str ());
+        if (!ifs)
+            throw std::runtime_error ("could not open file");
+        tl.read (ifs);
+        tl.write (std::clog);
     }
     void set_speed (double s)
     {
