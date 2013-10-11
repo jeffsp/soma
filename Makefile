@@ -5,6 +5,10 @@ all:
 run: all
 	./build/debug/soma_mouse
 
+touchport: all
+	./build/debug/touchport > touchport.txt
+	cat touchport.txt
+
 count: all
 	./build/debug/finger_counter
 
