@@ -83,62 +83,63 @@ class point_delta
 class mouse_pointer
 {
     private:
-    static const uint64_t SW_DURATION = 50000;
+    static const uint64_t SW_DURATION1 = 50000;
+    static const uint64_t SW_DURATION2 = 200000;
     sliding_window<double> swx;
     sliding_window<double> swy;
+    sliding_window<double> swv;
     running_mean smooth_x;
     running_mean smooth_y;
+    running_mean smooth_v;
     mouse &m;
     double speed;
     point_delta delta;
     public:
     mouse_pointer (mouse &m, double speed)
-        : swx (SW_DURATION)
-        , swy (SW_DURATION)
+        : swx (SW_DURATION1)
+        , swy (SW_DURATION1)
+        , swv (SW_DURATION2)
         , m (m)
         , speed (speed)
     {
     }
     void set_speed (double s)
     {
-        if (s >= 1.0)
+        if (s > 0.0)
             speed = s;
     }
     void clear ()
     {
         swx.clear ();
         swy.clear ();
+        swv.clear ();
         smooth_x.reset ();
         smooth_y.reset ();
+        smooth_v.reset ();
         delta.reset ();
     }
-    void update (uint64_t ts, const vec3 &pos)
+    void update (const uint64_t ts, const vec3 &pos)
     {
         swx.add (ts, pos.x, smooth_x);
         swy.add (ts, pos.y, smooth_y);
         double x = smooth_x.get_mean ();
         double y = smooth_y.get_mean ();
         delta.update (ts, x, y);
-        // get mm per second
-        double mmps = 1000000 * delta.dr () / delta.dt ();
-        // did it move fast or slow?
-        double px;
-        double py;
-        const int FAST = 200;
-        if (mmps < FAST)
-        {
-            // slow
-            px = mm_to_pixels (delta.dx ()) * speed;
-            py = mm_to_pixels (-delta.dy ()) * speed;
-        }
-        else
-        {
-            // fast
-            double gain = (mmps - FAST) / 100;
-            px = gain * mm_to_pixels (delta.dx ()) * speed;
-            py = gain * mm_to_pixels (-delta.dy ()) * speed;
-        }
+        double px = mm_to_pixels (delta.dx ()) * speed;
+        double py = mm_to_pixels (-delta.dy ()) * speed;
         m.move (px, py);
+        // get velocity in mm /sec
+        if (delta.dt () != 0)
+        {
+            double v = 1000000 * delta.dr () / delta.dt ();
+            swv.add (ts, v, smooth_v);
+            double sv = std::min (smooth_v.get_mean (), 500.0);
+            assert (sv >= 0.0);
+            // slow pointer gets longer window
+            uint64_t d = SW_DURATION1 + (500 - sv) * 250;
+            swx.set_duration (d);
+            swy.set_duration (d);
+        }
     }
 };
 
