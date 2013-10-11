@@ -25,12 +25,22 @@ class mouse
 {
     private:
     Display *d;
+    Window root;
+    int w;
+    int h;
     public:
     mouse ()
         : d (XOpenDisplay (0))
     {
         if (!d)
             throw std::runtime_error ("Could not open X display");
+        const int screen_number = 0;
+        root = RootWindow (d, screen_number);
+        Screen *s = ScreenOfDisplay (d, screen_number);
+        if (!s)
+            throw std::runtime_error ("could not determine screen of display");
+        w = WidthOfScreen (s);
+        h = HeightOfScreen (s);
     }
     ~mouse ()
     {
@@ -48,21 +58,16 @@ class mouse
     }
     void set (int x, int y)
     {
-        const int screen_number = 0;
-        Window dest = RootWindow (d, screen_number);
-        XWarpPointer (d, None, dest, 0, 0, 0, 0, x, y);
+        XWarpPointer (d, None, root, 0, 0, 0, 0, x, y);
         XFlush (d);
     }
-    void center ()
+    int width () const
     {
-        const int screen_number = 0;
-        Screen *s = ScreenOfDisplay (d, screen_number);
-        if (!s)
-            throw std::runtime_error ("could not determine screen of display");
-        int w = WidthOfScreen (s);
-        int h = HeightOfScreen (s);
-        if (w != 0 && h != 0)
-            set (w / 2, h / 2);
+        return w;
+    }
+    int height () const
+    {
+        return h;
     }
 };
 
