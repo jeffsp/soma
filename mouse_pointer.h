@@ -89,6 +89,12 @@ std::istream& operator>> (std::istream &s, vec3 &v)
     return s;
 }
 
+double quadratic (const double a, const double b, const double c)
+{
+    double z = b * b - 4 * a * c;
+    return (-b + sqrt (abs (z))) / (2 * a);
+}
+
 class touchport
 {
     private:
@@ -121,12 +127,31 @@ class touchport
     int mapx (double x) const
     {
         // interpolate to get 3d coord mapped into screen coordinate
-        return 0;
+        const double A = std::min (tl.x, bl.x);
+        const double B = std::max (tl.x, bl.x);
+        const double C = std::max (tr.x, br.x);
+        const double D = std::min (tr.x, br.x);
+        const double a = A - B + C - D;
+        const double b = -2 * A + B + D;
+        const double c = A + x;
+        const double sx = quadratic (a, b, c);
+        std::clog << "sx " <<  sx << std::endl;
+        return (1 - sx) * width;
     }
     int mapy (double y) const
     {
         // interpolate to get 3d coord mapped into screen coordinate
-        return 0;
+        const double A = std::min (tl.y, bl.y);
+        const double B = std::max (tl.y, bl.y);
+        const double C = std::max (tr.y, br.y);
+        const double D = std::min (tr.y, br.y);
+        const double a = A - B + C - D;
+        const double b = -2 * A + B + D;
+        const double c = A + y;
+        const double sy = quadratic (a, b, c);
+        std::clog << "sy " <<  sy << std::endl;
+        std::clog << "y " << (2 - sy) * height << std::endl;
+        return  (2 - sy) * height;
     }
 };
 
