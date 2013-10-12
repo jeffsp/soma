@@ -58,8 +58,8 @@ class touchport : public Leap::Listener
         vec3 c (cx / points.size (), cy / points.size (), cz / points.size ());
         tl = find (c, points, 1, 0);
         tr = find (c, points, 0, 0);
-        bl = find (c, points, 0, 1);
-        br = find (c, points, 1, 1);
+        bl = find (c, points, 1, 1);
+        br = find (c, points, 0, 1);
         s << tl << endl;
         s << tr << endl;
         s << bl << endl;
