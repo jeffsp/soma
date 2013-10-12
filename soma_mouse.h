@@ -50,9 +50,9 @@ class soma_mouse : public Leap::Listener
     bool done;
     const options &opts;
     hand_shape_classifier hsc;
+    mouse m;
     mouse_pointer mp;
     frame_counter fc;
-    mouse m;
     keyboard k;
     time_guard can_click;
     void check_click (uint64_t ts)
