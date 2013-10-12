@@ -96,20 +96,37 @@ class touchport
     vec3 tr;
     vec3 bl;
     vec3 br;
+    int width;
+    int height;
     public:
-    void read (std::istream &s)
+    void set_screen_dimensions (int w, int h)
+    {
+        width = w;
+        height = h;
+    }
+    void read (std::istream &s) const
     {
         s >> tl;
         s >> tr;
         s >> bl;
         s >> br;
     }
-    void write (std::ostream &s)
+    void write (std::ostream &s) const
     {
         s << tl << std::endl;
         s << tr << std::endl;
         s << bl << std::endl;
         s << br << std::endl;
+    }
+    int mapx (double x) const
+    {
+        // interpolate to get 3d coord mapped into screen coordinate
+        return 0;
+    }
+    int mapy (double y) const
+    {
+        // interpolate to get 3d coord mapped into screen coordinate
+        return 0;
     }
 };
 
@@ -127,7 +144,7 @@ class mouse_pointer
     mouse &m;
     double speed;
     point_delta delta;
-    touchport tl;
+    touchport tp;
     public:
     mouse_pointer (mouse &m, double speed)
         : swx (SW_DURATION1)
@@ -141,8 +158,9 @@ class mouse_pointer
         std::ifstream ifs (fn.c_str ());
         if (!ifs)
             throw std::runtime_error ("could not open file");
-        tl.read (ifs);
-        tl.write (std::clog);
+        tp.read (ifs);
+        tp.write (std::clog);
+        tp.set_screen_dimensions (m.width (), m.height ());
     }
     void set_speed (double s)
     {
@@ -165,6 +183,8 @@ class mouse_pointer
         swy.add (ts, pos.y, smooth_y);
         double x = smooth_x.get_mean ();
         double y = smooth_y.get_mean ();
+        m.set (tp.mapx (x), tp.mapy (y));
+        /*
         delta.update (ts, x, y);
         double px = mm_to_pixels (delta.dx ()) * speed;
         double py = mm_to_pixels (-delta.dy ()) * speed;
@@ -181,6 +201,7 @@ class mouse_pointer
             swx.set_duration (d);
             swy.set_duration (d);
         }
+        */
     }
 };
 
