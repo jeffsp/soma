@@ -104,7 +104,7 @@ class touchport
         width = w;
         height = h;
     }
-    void read (std::istream &s) const
+    void read (std::istream &s)
     {
         s >> tl;
         s >> tr;
