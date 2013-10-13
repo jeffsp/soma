@@ -102,6 +102,7 @@ class touchport
     vec3 tr;
     vec3 bl;
     vec3 br;
+    vec3 offset;
     int width;
     int height;
     // get coordinates in 0, 1
@@ -118,6 +119,18 @@ class touchport
     {
         width = w;
         height = h;
+    }
+    void set_center (const vec3 &p)
+    {
+        const double x1 = mapx (p.x);
+        const double y1 = mapy (p.y);
+        double cx = (tl.x + tr.x + bl.x + br.x) / 4.0;
+        double cy = (tl.y + tr.y + bl.y + br.y) / 4.0;
+        const double x2 = mapx (cx);
+        const double y2 = mapy (cy);
+        offset.x = x2 - x1;
+        offset.y = y2 - y1;
+        std::clog << "offset " << offset << std::endl;
     }
     void read (std::istream &s)
     {
@@ -142,7 +155,7 @@ class touchport
         const double sx = map (x, A, B, C, D);
         //std::clog << "sx " << sx << std::endl;
         //std::clog << "x " << (1 - sx) * width << std::endl;
-        return sx * width;
+        return sx * width + offset.x;
     }
     int mapy (double y) const
     {
@@ -154,14 +167,14 @@ class touchport
         const double sy = map (y, A, B, C, D);
         //std::clog << "y " << y << " sy " << sy << std::endl;
         //std::clog << "y " << (2 + sy) * height << std::endl;
-        return  (1 - sy) * height;
+        return  (1 - sy) * height + offset.y;
     }
 };
 
 class mouse_pointer
 {
     private:
-    static const uint64_t SW_DURATION1 = 50000;
+    static const uint64_t SW_DURATION1 = 100000;
     static const uint64_t SW_DURATION2 = 200000;
     sliding_window<double> swx;
     sliding_window<double> swy;
@@ -189,6 +202,10 @@ class mouse_pointer
         tp.read (ifs);
         tp.write (std::clog);
         tp.set_screen_dimensions (m.width (), m.height ());
+    }
+    void set_center (const vec3 &p)
+    {
+        tp.set_center (p);
     }
     void set_speed (double s)
     {
