@@ -104,6 +104,15 @@ class touchport
     vec3 br;
     int width;
     int height;
+    // get coordinates in 0, 1
+    double map (const double x, const double A, const double B, const double C, const double D) const
+    {
+        const double a = A - B - C + D;
+        const double b = -2 * A + B + C;
+        const double c = A - x;
+        const double y = quadratic (a, b, c);
+        return y;
+    }
     public:
     void set_screen_dimensions (int w, int h)
     {
@@ -126,32 +135,26 @@ class touchport
     }
     int mapx (double x) const
     {
-        // interpolate to get 3d coord mapped into screen coordinate
         const double A = std::min (tl.x, bl.x);
         const double B = std::max (tl.x, bl.x);
-        const double C = std::max (tr.x, br.x);
-        const double D = std::min (tr.x, br.x);
-        const double a = A - B + C - D;
-        const double b = -2 * A + B + D;
-        const double c = A + x;
-        const double sx = quadratic (a, b, c);
-        std::clog << "sx " <<  sx << std::endl;
-        return (1 - sx) * width;
+        const double C = std::min (tr.x, br.x);
+        const double D = std::max (tr.x, br.x);
+        const double sx = map (x, A, B, C, D);
+        //std::clog << "sx " << sx << std::endl;
+        //std::clog << "x " << (1 - sx) * width << std::endl;
+        return sx * width;
     }
     int mapy (double y) const
     {
         // interpolate to get 3d coord mapped into screen coordinate
         const double A = std::min (tl.y, bl.y);
         const double B = std::max (tl.y, bl.y);
-        const double C = std::max (tr.y, br.y);
-        const double D = std::min (tr.y, br.y);
-        const double a = A - B + C - D;
-        const double b = -2 * A + B + D;
-        const double c = A + y;
-        const double sy = quadratic (a, b, c);
-        std::clog << "sy " <<  sy << std::endl;
-        std::clog << "y " << (2 - sy) * height << std::endl;
-        return  (2 - sy) * height;
+        const double C = std::min (tr.y, br.y);
+        const double D = std::max (tr.y, br.y);
+        const double sy = map (y, A, B, C, D);
+        //std::clog << "y " << y << " sy " << sy << std::endl;
+        //std::clog << "y " << (2 + sy) * height << std::endl;
+        return  (1 - sy) * height;
     }
 };
 
@@ -209,11 +212,7 @@ class mouse_pointer
         double x = smooth_x.get_mean ();
         double y = smooth_y.get_mean ();
         m.set (tp.mapx (x), tp.mapy (y));
-        /*
         delta.update (ts, x, y);
-        double px = mm_to_pixels (delta.dx ()) * speed;
-        double py = mm_to_pixels (-delta.dy ()) * speed;
-        m.move (px, py);
         // get velocity in mm /sec
         if (delta.dt () != 0)
         {
@@ -226,7 +225,6 @@ class mouse_pointer
             swx.set_duration (d);
             swy.set_duration (d);
         }
-        */
     }
 };
 
