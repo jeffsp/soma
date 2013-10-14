@@ -175,8 +175,8 @@ class touchport
 class mouse_pointer
 {
     private:
-    static const uint64_t SW_DURATION1 = 20000;
-    static const uint64_t SW_DURATION2 = 20000;
+    static const uint64_t SW_DURATION1 =  20000;
+    static const uint64_t SW_DURATION2 = 200000;
     sliding_window<double> swx;
     sliding_window<double> swy;
     sliding_window<double> swxv1;
