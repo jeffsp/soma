@@ -102,10 +102,12 @@ class soma_mouse : public Leap::Listener
             {
                 if (s.size () == 1)
                 {
+                    mp.set_mode (0);
                     mp.update (ts, s[0].position);
                 }
                 else if (s.size () == 2)
                 {
+                    mp.set_mode (1);
                     // get highest finger
                     hand_sample tmp (s);
                     sort (tmp.begin (), tmp.end (), sort_top_to_bottom);

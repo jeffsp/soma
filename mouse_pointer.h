@@ -175,8 +175,8 @@ class touchport
 class mouse_pointer
 {
     private:
-    static const uint64_t SW_DURATION1 =  20000;
-    static const uint64_t SW_DURATION2 = 200000;
+    static const uint64_t SW_DURATION1 = 20000;
+    static const uint64_t SW_DURATION2 = 30000;
     sliding_window<double> swx;
     sliding_window<double> swy;
     sliding_window<double> swxv1;
@@ -192,6 +192,8 @@ class mouse_pointer
     mouse &m;
     double speed;
     touchport tp;
+    int mode;
+    point_delta pd;
     public:
     mouse_pointer (mouse &m, double speed)
         : swx (SW_DURATION1)
@@ -220,6 +222,10 @@ class mouse_pointer
     {
         if (s > 0.0)
             speed = s;
+    }
+    void set_mode (int m)
+    {
+        mode = m;
     }
     void clear ()
     {
@@ -264,7 +270,11 @@ class mouse_pointer
             swx.set_duration (SW_DURATION2);
             swy.set_duration (SW_DURATION2);
         }
-        m.set (tp.mapx (x), tp.mapy (y));
+        pd.update (ts, x, y);
+        if (mode == 0)
+            m.set (tp.mapx (x), tp.mapy (y));
+        else
+            m.move (speed * mm_to_pixels (pd.dx ()), -speed * mm_to_pixels (pd.dy ()));
     }
 };
 
