@@ -7,8 +7,6 @@
 #ifndef FINGER_ID_TRACKER_H
 #define FINGER_ID_TRACKER_H
 
-#include "sliding_window.h"
-#include "stats.h"
 #include <cstdint>
 #include <map>
 #include <vector>

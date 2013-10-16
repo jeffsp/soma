@@ -11,8 +11,6 @@
 const int MAJOR_REVISION = 0;
 const int MINOR_REVISION = 1;
 
-#include "keyboard.h"
-#include "mouse_pointer.h"
 #include "options.h"
 #include "soma.h"
 #include <unistd.h>
@@ -52,6 +50,7 @@ class soma_mouse : public Leap::Listener
     hand_shape_classifier hsc;
     mouse m;
     mouse_pointer mp;
+    mouse_scroller ms;
     frame_counter fc;
     keyboard k;
     time_guard can_click;
@@ -121,8 +120,17 @@ class soma_mouse : public Leap::Listener
             case hand_shape::clicking:
             break;
             case hand_shape::scrolling:
-            mp.clear ();
-            centering = false;
+            {
+                if (s.size () == 2)
+                {
+                    // thumb on left
+                    hand_sample tmp (s);
+                    sort (tmp.begin (), tmp.end (), sort_left_to_right);
+                    ms.update (ts, tmp[0].position, tmp[1].position);
+                }
+                mp.clear ();
+                centering = false;
+            }
             break;
             case hand_shape::ok:
             mp.clear ();
@@ -149,6 +157,7 @@ class soma_mouse : public Leap::Listener
         , opts (opts)
         , hsc (200000)
         , mp (m, opts.get_mouse_speed ())
+        , ms (m)
         , centering (false)
     {
     }

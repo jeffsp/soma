@@ -13,7 +13,12 @@
 #include "hand_sample.h"
 #include "hand_shape_classifier.h"
 #include "hand_traits.h"
+#include "keyboard.h"
+#include "mouse.h"
+#include "mouse_scroller.h"
+#include "mouse_pointer.h"
 #include "sliding_window.h"
 #include "stats.h"
+#include "touch_port.h"
 
 #endif

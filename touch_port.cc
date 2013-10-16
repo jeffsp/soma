@@ -1,4 +1,4 @@
-/// @file touchport.cc
+/// @file touch_port.cc
 /// @brief instead of a viewport, it's a touchport
 /// @author Jeff Perry <jeffsp@gmail.com>
 /// @version 1.0
@@ -9,7 +9,7 @@
 
 using namespace std;
 using namespace soma;
-const string usage = "usage: touchport > touchport.txt";
+const string usage = "usage: touch_port > touch_port.txt";
 
 vec3 find (const vec3 &c, const vector<vec3> &p, bool xltz, bool yltz)
 {

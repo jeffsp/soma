@@ -7,9 +7,6 @@
 #ifndef HAND_SHAPE_CLASSIFIER_H
 #define HAND_SHAPE_CLASSIFIER_H
 
-#include "hand_sample.h"
-#include "sliding_window.h"
-#include "finger_counter.h"
 #include <string>
 
 namespace soma

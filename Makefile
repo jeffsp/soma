@@ -6,9 +6,9 @@ run: all
 	./build/debug/soma_mouse
 
 touchport: all
-	./build/debug/touchport > touchport.txt
-	sed -i 's/[(),]//g' touchport.txt
-	cat touchport.txt
+	./build/debug/touch_port > touch_port.txt
+	sed -i 's/[(),]//g' touch_port.txt
+	cat touch_port.txt
 
 count: all
 	./build/debug/finger_counter
