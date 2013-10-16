@@ -24,12 +24,6 @@ struct vec2
     vec2 () : x (0), y (0) { }
 };
 
-// convert from mm to pixels at 96dpi
-double mm_to_pixels (double mm)
-{
-    return mm * 3.779527559;
-}
-
 class point_delta
 {
     private:
