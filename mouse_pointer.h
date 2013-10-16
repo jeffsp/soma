@@ -102,7 +102,6 @@ class touchport
     vec3 tr;
     vec3 bl;
     vec3 br;
-    vec3 offset;
     int width;
     int height;
     // get coordinates in 0, 1
@@ -115,23 +114,24 @@ class touchport
         return y;
     }
     public:
+    touchport ()
+    {
+    }
     void set_screen_dimensions (int w, int h)
     {
         width = w;
         height = h;
     }
-    void set_center (const vec3 &p)
+    void recenter (const vec3 &p)
     {
-        offset = vec3 (0, 0, 0);
-        const double x1 = mapx (p.x);
-        const double y1 = mapy (p.y);
-        double cx = (tl.x + tr.x + bl.x + br.x) / 4.0;
-        double cy = (tl.y + tr.y + bl.y + br.y) / 4.0;
-        const double x2 = mapx (cx);
-        const double y2 = mapy (cy);
-        offset.x = x2 - x1;
-        offset.y = y2 - y1;
-        std::clog << "offset " << offset << std::endl;
+        double dx = p.x - (tl.x + tr.x + bl.x + br.x) / 4;
+        double dy = p.y - (tl.y + tr.y + bl.y + br.y) / 4;
+        double x = dx < 0.0 ? -1 : +1;
+        double y = dy < 0.0 ? -1 : +1;
+        tl.x += x; tl.y += y;
+        bl.x += x; bl.y += y;
+        tr.x += x; tr.y += y;
+        br.x += x; br.y += y;
     }
     void read (std::istream &s)
     {
@@ -156,7 +156,7 @@ class touchport
         const double sx = map (x, A, B, C, D);
         //std::clog << "sx " << sx << std::endl;
         //std::clog << "x " << (1 - sx) * width << std::endl;
-        return sx * width + offset.x;
+        return sx * width / 2 + width / 4;
     }
     int mapy (double y) const
     {
@@ -168,40 +168,26 @@ class touchport
         const double sy = map (y, A, B, C, D);
         //std::clog << "y " << y << " sy " << sy << std::endl;
         //std::clog << "y " << (2 + sy) * height << std::endl;
-        return  (1 - sy) * height + offset.y;
+        return  (1 - sy) * height / 2 + height / 4;
     }
 };
 
 class mouse_pointer
 {
     private:
-    static const uint64_t SW_DURATION1 = 20000;
-    static const uint64_t SW_DURATION2 = 30000;
+    static const uint64_t SW_DURATION = 50000;
     sliding_window<double> swx;
     sliding_window<double> swy;
-    sliding_window<double> swxv1;
-    sliding_window<double> swyv1;
-    sliding_window<double> swxv2;
-    sliding_window<double> swyv2;
     running_mean smooth_x;
     running_mean smooth_y;
-    running_mean smooth_xv1;
-    running_mean smooth_yv1;
-    running_mean smooth_xv2;
-    running_mean smooth_yv2;
     mouse &m;
     double speed;
     touchport tp;
     int mode;
-    point_delta pd;
     public:
     mouse_pointer (mouse &m, double speed)
-        : swx (SW_DURATION1)
-        , swy (SW_DURATION1)
-        , swxv1 (SW_DURATION1)
-        , swyv1 (SW_DURATION1)
-        , swxv2 (SW_DURATION1)
-        , swyv2 (SW_DURATION1)
+        : swx (SW_DURATION)
+        , swy (SW_DURATION)
         , m (m)
         , speed (speed)
     {
@@ -214,14 +200,15 @@ class mouse_pointer
         tp.write (std::clog);
         tp.set_screen_dimensions (m.width (), m.height ());
     }
-    void set_center (const vec3 &p)
-    {
-        tp.set_center (p);
-    }
     void set_speed (double s)
     {
         if (s > 0.0)
             speed = s;
+    }
+    void recenter (const vec3 &pos)
+    {
+        tp.recenter (pos);
+        m.set (tp.mapx (pos.x), tp.mapy (pos.y));
     }
     void set_mode (int m)
     {
@@ -231,50 +218,16 @@ class mouse_pointer
     {
         swx.clear ();
         swy.clear ();
-        swxv1.clear ();
-        swyv1.clear ();
-        swxv2.clear ();
-        swyv2.clear ();
         smooth_x.reset ();
         smooth_y.reset ();
-        smooth_xv1.reset ();
-        smooth_yv1.reset ();
-        smooth_xv2.reset ();
-        smooth_yv2.reset ();
     }
     void update (const uint64_t ts, const vec3 &pos)
     {
         swx.add (ts, pos.x, smooth_x);
         swy.add (ts, pos.y, smooth_y);
-        swxv1.add (ts, pos.x, smooth_xv1);
-        swyv1.add (ts, pos.y, smooth_yv1);
-        swxv2.add (ts, pos.x * pos.x, smooth_xv2);
-        swyv2.add (ts, pos.y * pos.y, smooth_yv2);
         double x = smooth_x.get_mean ();
         double y = smooth_y.get_mean ();
-        double xv1 = smooth_xv1.get_mean ();
-        double yv1 = smooth_yv1.get_mean ();
-        double xv2 = smooth_xv2.get_mean ();
-        double yv2 = smooth_yv2.get_mean ();
-        // get variance
-        double xv = xv2 - xv1 * xv1;
-        double yv = yv2 - yv1 * yv1;
-        //std::clog << xv << '\t' << yv << std::endl;
-        if (xv + yv > 10)
-        {
-            swx.set_duration (SW_DURATION1);
-            swy.set_duration (SW_DURATION1);
-        }
-        else
-        {
-            swx.set_duration (SW_DURATION2);
-            swy.set_duration (SW_DURATION2);
-        }
-        pd.update (ts, x, y);
-        if (mode == 0)
-            m.set (tp.mapx (x), tp.mapy (y));
-        else
-            m.move (speed * mm_to_pixels (pd.dx ()), -speed * mm_to_pixels (pd.dy ()));
+        m.set (tp.mapx (x), tp.mapy (y));
     }
 };
 
