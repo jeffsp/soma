@@ -55,6 +55,8 @@ class soma_mouse : public Leap::Listener
     frame_counter fc;
     keyboard k;
     time_guard can_click;
+    vec3 center;
+    bool centering;
     void check_click (uint64_t ts)
     {
         if (can_click.guarded (ts))
@@ -94,34 +96,37 @@ class soma_mouse : public Leap::Listener
             break;
             case hand_shape::unknown:
             mp.clear ();
+            centering = false;
             break;
             case hand_shape::zero:
             mp.clear ();
+            centering = false;
             break;
             case hand_shape::pointing:
             {
                 if (s.size () == 1)
                 {
-                    mp.set_mode (0);
                     mp.update (ts, s[0].position);
                 }
                 else if (s.size () == 2)
                 {
-                    mp.set_mode (1);
                     // get highest finger
                     hand_sample tmp (s);
                     sort (tmp.begin (), tmp.end (), sort_top_to_bottom);
                     mp.update (ts, tmp[0].position);
                 }
                 check_click (ts);
+                centering = false;
             }
             case hand_shape::clicking:
             break;
             case hand_shape::scrolling:
             mp.clear ();
+            centering = false;
             break;
             case hand_shape::ok:
             mp.clear ();
+            centering = false;
             break;
             case hand_shape::center:
             if (s.size () == 5)
@@ -129,7 +134,15 @@ class soma_mouse : public Leap::Listener
                 // get index finger
                 hand_sample tmp (s);
                 sort (tmp.begin (), tmp.end (), sort_left_to_right);
-                mp.recenter (tmp[1].position);
+                if (!centering)
+                {
+                    center = tmp[1].position;
+                    centering = true;
+                }
+                else
+                {
+                    mp.recenter (center - tmp[1].position);
+                }
             }
             break;
         }
@@ -140,6 +153,7 @@ class soma_mouse : public Leap::Listener
         , opts (opts)
         , hsc (200000)
         , mp (m, opts.get_mouse_speed ())
+        , centering (false)
     {
     }
     ~soma_mouse ()

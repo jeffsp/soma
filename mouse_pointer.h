@@ -122,16 +122,12 @@ class touchport
         width = w;
         height = h;
     }
-    void recenter (const vec3 &p)
+    void recenter (const vec3 &d)
     {
-        double dx = p.x - (tl.x + tr.x + bl.x + br.x) / 4;
-        double dy = p.y - (tl.y + tr.y + bl.y + br.y) / 4;
-        double x = dx < 0.0 ? -1 : +1;
-        double y = dy < 0.0 ? -1 : +1;
-        tl.x += x; tl.y += y;
-        bl.x += x; bl.y += y;
-        tr.x += x; tr.y += y;
-        br.x += x; br.y += y;
+        tl.x += d.x; tl.y += d.y;
+        bl.x += d.x; bl.y += d.y;
+        tr.x += d.x; tr.y += d.y;
+        br.x += d.x; br.y += d.y;
     }
     void read (std::istream &s)
     {
@@ -183,7 +179,6 @@ class mouse_pointer
     mouse &m;
     double speed;
     touchport tp;
-    int mode;
     public:
     mouse_pointer (mouse &m, double speed)
         : swx (SW_DURATION)
@@ -208,11 +203,6 @@ class mouse_pointer
     void recenter (const vec3 &pos)
     {
         tp.recenter (pos);
-        m.set (tp.mapx (pos.x), tp.mapy (pos.y));
-    }
-    void set_mode (int m)
-    {
-        mode = m;
     }
     void clear ()
     {
