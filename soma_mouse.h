@@ -135,14 +135,10 @@ class soma_mouse : public Leap::Listener
                 hand_sample tmp (s);
                 sort (tmp.begin (), tmp.end (), sort_left_to_right);
                 if (!centering)
-                {
-                    center = tmp[1].position;
                     centering = true;
-                }
                 else
-                {
                     mp.recenter (center - tmp[1].position);
-                }
+                center = tmp[1].position;
             }
             break;
         }
