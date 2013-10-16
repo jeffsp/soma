@@ -124,13 +124,12 @@ class soma_mouse : public Leap::Listener
             mp.clear ();
             break;
             case hand_shape::center:
-            m.set (m.width () / 2, m.height () / 2);
             if (s.size () == 5)
             {
-                // get middle finger
+                // get index finger
                 hand_sample tmp (s);
                 sort (tmp.begin (), tmp.end (), sort_left_to_right);
-                mp.set_center (tmp[2].position);
+                mp.recenter (tmp[1].position);
             }
             break;
         }
