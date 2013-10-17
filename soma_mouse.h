@@ -88,6 +88,25 @@ class soma_mouse : public Leap::Listener
     }
     void update (uint64_t ts, const hand_shape shape, const hand_sample &s)
     {
+        if (centering && shape != hand_shape::center)
+        {
+            centering = false;
+            if (!s.empty ())
+            {
+                hand_sample tmp (s);
+                sort (tmp.begin (), tmp.end (), sort_left_to_right);
+                if (s.size () > 1)
+                {
+                    mp.recenter (s[1].position - center);
+                }
+                else
+                {
+                    assert (s.size () == 1);
+                    mp.recenter (s[0].position - center);
+                }
+            }
+        }
+
         switch (shape)
         {
             default:
@@ -95,11 +114,9 @@ class soma_mouse : public Leap::Listener
             break;
             case hand_shape::unknown:
             mp.clear ();
-            centering = false;
             break;
             case hand_shape::zero:
             mp.clear ();
-            centering = false;
             break;
             case hand_shape::pointing:
             {
@@ -115,7 +132,6 @@ class soma_mouse : public Leap::Listener
                     mp.update (ts, tmp[0].position);
                 }
                 check_click (ts);
-                centering = false;
             }
             case hand_shape::clicking:
             break;
@@ -129,24 +145,22 @@ class soma_mouse : public Leap::Listener
                     ms.update (ts, tmp[0].position, tmp[1].position);
                 }
                 mp.clear ();
-                centering = false;
             }
             break;
             case hand_shape::ok:
             mp.clear ();
-            centering = false;
             break;
             case hand_shape::center:
             if (s.size () == 5)
             {
                 // get index finger
-                hand_sample tmp (s);
-                sort (tmp.begin (), tmp.end (), sort_left_to_right);
                 if (!centering)
+                {
+                    hand_sample tmp (s);
+                    sort (tmp.begin (), tmp.end (), sort_left_to_right);
                     centering = true;
-                else
-                    mp.recenter (center - tmp[1].position);
-                center = tmp[1].position;
+                    center = tmp[1].position;
+                }
             }
             break;
         }
