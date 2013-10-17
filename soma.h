@@ -20,6 +20,7 @@
 #include "point_delta.h"
 #include "sliding_window.h"
 #include "stats.h"
+#include "time_guard.h"
 #include "touch_port.h"
 
 #endif
