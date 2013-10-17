@@ -7,7 +7,8 @@
 #ifndef TOUCH_PORT_H
 #define TOUCH_PORT_H
 
-#include "soma.h"
+#include "hand_sample.h"
+#include <iostream>
 
 namespace soma
 {

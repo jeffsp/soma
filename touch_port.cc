@@ -4,8 +4,9 @@
 /// @version 1.0
 /// @date 2013-10-11
 
+#include "touch_port.h"
+#include "Leap.h"
 #include <stdexcept>
-#include "soma.h"
 
 using namespace std;
 using namespace soma;
