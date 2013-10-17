@@ -5,7 +5,9 @@
 /// @date 2013-09-27
 
 #include <stdexcept>
-#include "soma.h"
+#include "finger_id_tracker.h"
+#include "hand_sample.h"
+#include "Leap.h"
 
 using namespace std;
 using namespace soma;
