@@ -7,8 +7,9 @@
 #ifndef MOUSE_CLICKER_H
 #define MOUSE_CLICKER_H
 
-#include "mouse.h"
+#include "hand_sample.h"
 #include "keyboard.h"
+#include "mouse.h"
 #include "time_guard.h"
 #include <fstream>
 
