@@ -7,6 +7,9 @@
 #ifndef HAND_SHAPE_CLASSIFIER_H
 #define HAND_SHAPE_CLASSIFIER_H
 
+#include "finger_counter.h"
+#include "hand_sample.h"
+#include <cassert>
 #include <string>
 
 namespace soma
@@ -57,11 +60,16 @@ class hand_shape_classifier
         // make sure first is lower than second
         if (p0.y > p1.y)
             std::swap (p0, p1);
-        // get the angle
+        // get the angles
         float dx = abs (p0.x- p1.x);
         float dy = abs (p0.y- p1.y);
-        float slope = atan2 (dy, dx) * 180 / M_PI;
-        if (slope < 45)
+        float xy_slope = atan2 (dy, dx) * 180 / M_PI;
+        // make sure first is closer than second
+        if (p0.z > p1.z)
+            std::swap (p0, p1);
+        float dz = abs (p0.z- p1.z);
+        float xz_slope = atan2 (dz, dx) * 180 / M_PI;
+        if (xy_slope < 20 && xz_slope < 15)
             current = hand_shape::scrolling;
         else
             current = hand_shape::pointing;
