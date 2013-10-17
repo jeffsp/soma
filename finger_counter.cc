@@ -5,12 +5,15 @@
 /// @date 2013-09-27
 
 #include <stdexcept>
-#include "soma.h"
+#include "finger_counter.h"
+#include "hand_sample.h"
+#include "Leap.h"
 
 using namespace std;
 using namespace soma;
 const string usage = "usage: finger_counter";
 
+/// @brief grab frames and count fingers
 class grabber : public Leap::Listener
 {
     private:
