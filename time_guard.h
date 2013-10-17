@@ -28,7 +28,7 @@ class time_guard
         ts = t;
         duration = d;
     }
-    bool guarded (uint64_t t)
+    bool guarded (uint64_t t) const
     {
         assert (t >= ts);
         return (t - ts) < duration;
