@@ -4,10 +4,10 @@
 /// @version 1.0
 /// @date 2013-09-27
 
-#include <stdexcept>
 #include "finger_counter.h"
 #include "hand_sample.h"
 #include "Leap.h"
+#include <stdexcept>
 
 using namespace std;
 using namespace soma;
