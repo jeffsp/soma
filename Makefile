@@ -5,10 +5,11 @@ all:
 run: all
 	./build/debug/soma_mouse
 
-touchport: all
-	./build/debug/touch_port > touch_port.txt
-	sed -i 's/[(),]//g' touch_port.txt
-	cat touch_port.txt
+check: all
+	$(MAKE) -C tests check
+
+dump: all
+	./build/debug/dump_samples 1
 
 count: all
 	./build/debug/finger_counter
@@ -19,6 +20,11 @@ ids: all
 classify: all
 	./build/debug/hand_shape_classifier
 
+touchport: all
+	./build/debug/touch_port > touch_port.txt
+	sed -i 's/[(),]//g' touch_port.txt
+	cat touch_port.txt
+
 mouse: all
 	./build/debug/soma_mouse
 	./build/release/soma_mouse
@@ -26,9 +32,3 @@ mouse: all
 keyboard: all
 	./build/debug/keyboard
 	./build/release/keyboard
-
-check: all
-	$(MAKE) -C tests check
-
-dump: all
-	./build/debug/dump_samples 1 > /dev/null
