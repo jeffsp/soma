@@ -15,6 +15,7 @@
 #include "hand_traits.h"
 #include "keyboard.h"
 #include "mouse.h"
+#include "mouse_clicker.h"
 #include "mouse_scroller.h"
 #include "mouse_pointer.h"
 #include "point_delta.h"
