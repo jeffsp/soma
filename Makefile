@@ -25,6 +25,9 @@ touchport: all
 	sed -i 's/[(),]//g' touch_port.txt
 	cat touch_port.txt
 
+clicker: all
+	./build/debug/mouse_clicker
+
 mouse: all
 	./build/debug/soma_mouse
 	./build/release/soma_mouse
