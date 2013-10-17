@@ -4,8 +4,9 @@
 /// @version 1.0
 /// @date 2013-09-20
 
+#include "hand_shape_classifier.h"
+#include "Leap.h"
 #include <stdexcept>
-#include "soma.h"
 
 using namespace std;
 using namespace soma;
