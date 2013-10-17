@@ -20,10 +20,8 @@ enum class hand_shape
     unknown = -1,
     zero = 0,
     pointing = 1,
-    clicking = 2,
-    scrolling = 3,
-    ok = 4,
-    center = 5,
+    scrolling = 2,
+    stopping = 3,
 };
 
 std::string to_string (const hand_shape s)
@@ -34,10 +32,8 @@ std::string to_string (const hand_shape s)
         case hand_shape::unknown: return std::string ("unknown");
         case hand_shape::zero: return std::string ("zero");
         case hand_shape::pointing: return std::string ("pointing");
-        case hand_shape::clicking: return std::string ("clicking");
         case hand_shape::scrolling: return std::string ("scrolling");
-        case hand_shape::ok: return std::string ("ok");
-        case hand_shape::center: return std::string ("center");
+        case hand_shape::stopping: return std::string ("stopping");
     }
 }
 
@@ -91,13 +87,11 @@ class hand_shape_classifier
                 update_finger_count2 (s);
             break;
             case 3:
-                current = hand_shape::ok;
-            break;
-            case 4:
                 current = hand_shape::unknown;
             break;
+            case 4:
             case 5:
-                current = hand_shape::center;
+                current = hand_shape::stopping;
             break;
         }
     }
