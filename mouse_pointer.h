@@ -31,12 +31,7 @@ class mouse_pointer
         , m (m)
         , speed (speed)
     {
-        std::string fn ("touch_port.txt");
-        std::clog << "opening " << fn << std::endl;
-        std::ifstream ifs (fn.c_str ());
-        if (!ifs)
-            throw std::runtime_error ("could not open file");
-        tp.read (ifs);
+        tp.set (vec3 (-150, 300, 0), vec3 (80, 301, 0), vec3 (-130, 160, 0), vec3 (90, 165, 0));
         tp.write (std::clog);
         tp.set_screen_dimensions (m.width (), m.height ());
     }
