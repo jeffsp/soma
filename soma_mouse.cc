@@ -46,7 +46,7 @@ int main (int argc, char **argv)
         soma_mouse sm (opts);
         Leap::Controller c (sm);
 
-        clog << "6 fingers = quit" << endl;
+        clog << "7 fingers = quit" << endl;
 
         // receive frames even when you don't have focus
         c.setPolicyFlags (Leap::Controller::POLICY_BACKGROUND_FRAMES);
