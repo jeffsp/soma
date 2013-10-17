@@ -21,82 +21,64 @@ namespace soma
 class soma_mouse : public Leap::Listener
 {
     private:
-    static const uint64_t CLICK_GUARD_DURATION = 300000;
+    static const uint64_t STOP_GUARD_DURATION = 2000000;
     bool done;
     const options &opts;
     hand_shape_classifier hsc;
     mouse m;
     mouse_pointer mp;
     mouse_scroller ms;
+    mouse_clicker mc;
     frame_counter fc;
-    keyboard k;
-    time_guard can_click;
-    vec3 center;
-    bool centering;
-    void check_click (uint64_t ts)
-    {
-        if (can_click.guarded (ts))
-            return;
-        std::vector<int> s = k.key_states ();
-        // was shift pressed?
-        if (s[0] || s[1])
-        {
-            // guard it so we don't click mutliple times
-            can_click.turn_on (ts, CLICK_GUARD_DURATION);
-            // left click down
-            m.click (1, 1);
-            // wait to release
-            usleep (10000);
-            // left click up
-            m.click (1, 0);
-        }
-        // was alt pressed?
-        else if (s[2] || s[3])
-        {
-            // guard it so we don't click mutliple times
-            can_click.turn_on (ts, CLICK_GUARD_DURATION);
-            // right click down
-            m.click (3, 1);
-            // wait to release
-            usleep (10000);
-            // right click up
-            m.click (3, 0);
-        }
-    }
+    bool stopped;
+    time_guard can_changed_stopped;
     void update (uint64_t ts, const hand_shape shape, const hand_sample &s)
     {
-        if (centering && shape != hand_shape::center)
-        {
-            centering = false;
-            if (!s.empty ())
-            {
-                hand_sample tmp (s);
-                sort (tmp.begin (), tmp.end (), sort_left_to_right);
-                if (s.size () > 1)
-                {
-                    mp.recenter (s[1].position - center);
-                }
-                else
-                {
-                    assert (s.size () == 1);
-                    mp.recenter (s[0].position - center);
-                }
-            }
-        }
+        // if we are stopped and not trying to restart, return
+        if (stopped && shape != hand_shape::stopping)
+            return;
 
         switch (shape)
         {
             default:
             assert (0); // logic error
-            break;
+            return;
+
             case hand_shape::unknown:
             mp.clear ();
-            break;
+            return;
+
             case hand_shape::zero:
             mp.clear ();
-            break;
+            return;
+
             case hand_shape::pointing:
             {
+                // update the clicker
+                mc.update (ts, s);
+                if (mc.did_pinch (ts))
+                {
+                    mc.pinch (ts);
+                    return;
+                }
+                if (mc.did_left_click (ts))
+                {
+                    mc.left_click (ts);
+                    return;
+                }
+                if (mc.did_right_click (ts))
+                {
+                    mc.right_click (ts);
+                    return;
+                }
+                // don't move the pointer if we might be in the middle of an action
+                if (mc.maybe_pinched (ts))
+                    return;
+                if (mc.maybe_left_clicked (ts))
+                    return;
+                if (mc.maybe_right_clicked (ts))
+                    return;
+                // ok, move the pointer
                 if (s.size () == 1)
                 {
                     mp.update (ts, s[0].position);
@@ -108,10 +90,9 @@ class soma_mouse : public Leap::Listener
                     sort (tmp.begin (), tmp.end (), sort_top_to_bottom);
                     mp.update (ts, tmp[0].position);
                 }
-                check_click (ts);
             }
-            case hand_shape::clicking:
             break;
+
             case hand_shape::scrolling:
             {
                 if (s.size () == 2)
@@ -123,23 +104,19 @@ class soma_mouse : public Leap::Listener
                 }
                 mp.clear ();
             }
-            break;
-            case hand_shape::ok:
-            mp.clear ();
-            break;
-            case hand_shape::center:
-            if (s.size () == 5)
+            return;
+
+            case hand_shape::stopping:
             {
-                // get index finger
-                if (!centering)
-                {
-                    hand_sample tmp (s);
-                    sort (tmp.begin (), tmp.end (), sort_left_to_right);
-                    centering = true;
-                    center = tmp[1].position;
-                }
+                if (can_changed_stopped.guarded (ts))
+                    return;
+                // we are changing states
+                stopped = !stopped;
+                // guard the state
+                can_changed_stopped.turn_on (ts, STOP_GUARD_DURATION);
+                mp.clear ();
             }
-            break;
+            return;
         }
     }
     public:
@@ -149,7 +126,8 @@ class soma_mouse : public Leap::Listener
         , hsc (200000)
         , mp (m, opts.get_mouse_speed ())
         , ms (m)
-        , centering (false)
+        , mc (m)
+        , stopped (false)
     {
     }
     ~soma_mouse ()
@@ -172,7 +150,7 @@ class soma_mouse : public Leap::Listener
         // get the sample
         hand_sample s (f.pointables ());
         // quit?
-        if (s.size () > 5)
+        if (s.size () > 6)
         {
             done = true;
             return;
