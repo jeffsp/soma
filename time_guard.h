@@ -7,6 +7,7 @@
 #ifndef TIME_GUARD_H
 #define TIME_GUARD_H
 
+#include <cassert>
 #include <cstdint>
 
 namespace soma
