@@ -48,6 +48,13 @@ class touch_port
     touch_port ()
     {
     }
+    void set (const vec3 &tl, const vec3 &tr, const vec3 &bl, const vec3 &br)
+    {
+        this->tl = tl;
+        this->tr = tr;
+        this->bl = bl;
+        this->br = br;
+    }
     void set_screen_dimensions (int w, int h)
     {
         width = w;
@@ -83,7 +90,8 @@ class touch_port
         const double sx = map (x, A, B, C, D);
         //std::clog << "sx " << sx << std::endl;
         //std::clog << "x " << (1 - sx) * width << std::endl;
-        return sx * width / 2 + width / 4;
+        // map into centered +-640
+        return sx * 640 + width / 2 - 320;
     }
     int mapy (double y) const
     {
@@ -95,7 +103,9 @@ class touch_port
         const double sy = map (y, A, B, C, D);
         //std::clog << "y " << y << " sy " << sy << std::endl;
         //std::clog << "y " << (2 + sy) * height << std::endl;
-        return  (1 - sy) * height / 2 + height / 4;
+        //std::clog << (1 - sy) * 480 + height / 2 - 240 << std::endl;
+        // map into centered +-480
+        return  (1 - sy) * 480 + height / 2 - 240;
     }
 };
 
