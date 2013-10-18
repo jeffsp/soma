@@ -29,10 +29,15 @@ class time_guard
         ts = t;
         duration = d;
     }
-    bool guarded (uint64_t t) const
+    bool is_on (uint64_t t) const
     {
         assert (t >= ts);
         return (t - ts) < duration;
+    }
+    void reset ()
+    {
+        ts = 0;
+        duration = 0;
     }
 };
 
