@@ -9,7 +9,7 @@ check: all
 	$(MAKE) -C tests check
 
 dump: all
-	./build/debug/dump_samples 1
+	./build/debug/sample_dumper > dump.txt
 
 count: all
 	./build/debug/finger_counter

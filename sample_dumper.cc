@@ -10,23 +10,19 @@
 
 using namespace std;
 using namespace soma;
-const string usage = "usage: sample_dumper <#_fingers>";
+const string usage = "usage: sample_dumper";
 
 /// @brief dump samples to cout
 class sample_dumper : public Leap::Listener
 {
     private:
-    const int n;
     bool done;
     frame_counter frc;
     uint64_t start_ts;
     public:
     /// @brief constructor
-    ///
-    /// @param n number of fingers
-    sample_dumper (unsigned n)
-        : n (n)
-        , done (false)
+    sample_dumper ()
+        : done (false)
         , start_ts (0)
     {
     }
@@ -55,35 +51,26 @@ class sample_dumper : public Leap::Listener
             // we are done
             done = true;
         }
-        else if (p.count () == n)
+        else if (p.count () == 2)
         {
             // dump the samples
             cout << ts - start_ts;
-            for (int i = 0; i < p.count (); ++i)
-            {
-                cout << ' ' << p[i].tipPosition ().x;
-                cout << ' ' << p[i].tipPosition ().y;
-                cout << ' ' << p[i].tipPosition ().z;
-            }
-            cout << endl;
+            double d = p[0].tipPosition ().distanceTo (p[1].tipPosition ());
+            cout << ' ' << d << endl;
             if (!(frc.get_frames () % 100))
                 std::clog << frc.fps () << "fps" << std::endl;
         }
     }
 };
 
-int main (int argc, char **argv)
+int main (int argc, char **)
 {
     try
     {
-        if (argc != 2)
+        if (argc != 1)
             throw runtime_error (usage);
 
-        int n = atoi (argv[1]);
-
-        clog << "n " << n << endl;
-
-        sample_dumper sd (n);
+        sample_dumper sd;
         Leap::Controller c (sd);
 
         clog << "6 fingers = quit" << endl;
