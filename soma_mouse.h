@@ -108,7 +108,7 @@ class soma_mouse : public Leap::Listener
 
             case hand_shape::stopping:
             {
-                if (can_changed_stopped.guarded (ts))
+                if (can_changed_stopped.is_on (ts))
                     return;
                 // we are changing states
                 stopped = !stopped;
