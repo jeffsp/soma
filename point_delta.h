@@ -15,21 +15,17 @@ class point_delta
 {
     private:
     bool valid;
-    uint64_t max_dt;
     T last_p;
     T current_p;
     uint64_t last_t;
     uint64_t current_t;
     public:
-    point_delta (uint64_t max_dt = 100000)
+    point_delta ()
         : valid (false)
-        , max_dt (max_dt)
     {
     }
     void update (uint64_t ts, const T &x)
     {
-        if (dt () > max_dt)
-            reset ();
         if (valid)
         {
             last_p = current_p;
