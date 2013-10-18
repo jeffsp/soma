@@ -13,24 +13,29 @@
 namespace soma
 {
 
+template<typename T>
+struct vec2
+{
+    T x, y;
+    vec2 (T x, T y) : x (x), y (y) { }
+    vec2 () : x (0), y (0) { }
+};
+
 class mouse_scroller
 {
     private:
     static const uint64_t SW_DURATION = 50000;
-    sliding_window<double> swx;
     sliding_window<double> swy;
-    running_mean smooth_x;
     running_mean smooth_y;
-    point_delta dd;
-    point_delta dy;
+    point_delta<double> dy;
+    point_delta<double> dd;
     mouse &m;
     double speed;
     double min_distance;
     time_guard can_click;
     public:
     mouse_scroller (mouse &m, double speed = 1.0)
-        : swx (SW_DURATION)
-        , swy (SW_DURATION)
+        : swy (SW_DURATION)
         , m (m)
         , speed (speed)
         , min_distance (55)
@@ -43,9 +48,7 @@ class mouse_scroller
     }
     void clear ()
     {
-        swx.clear ();
         swy.clear ();
-        smooth_x.reset ();
         smooth_y.reset ();
     }
     void update (const uint64_t ts, const vec3 &pos1, const vec3 &pos2)
@@ -55,19 +58,17 @@ class mouse_scroller
         if (d > min_distance)
             return;
         // save the distance between the points
-        dd.update (ts, d, 0);
+        dd.update (ts, d);
         // if they are moving away from one another, ignore it
         // TODO convert to mm/sec
-        if (dd.dx () > 0.3)
+        if (dd.current () - dd.last () > 0.3)
             return;
-        swx.add (ts, pos1.x, smooth_x);
         swy.add (ts, pos1.y, smooth_y);
-        double x = smooth_x.get_mean ();
         double y = smooth_y.get_mean ();
         // is it moving up or down?
-        dy.update (ts, x, y);
+        dy.update (ts, y);
         // TODO convert to mm/sec
-        if (fabs (dy.dy ()) < 0.1)
+        if (fabs (dy.current () - dy.last ()) < 0.1)
             return;
         // check the guard
         if (can_click.guarded (ts))
@@ -76,7 +77,7 @@ class mouse_scroller
         // TODO make a parameter
         can_click.turn_on (ts, 100000);
         // scroll
-        if (dy.dy () > 0)
+        if (dy.current () - dy.last () > 0)
         {
             m.click (4, 1);
             m.click (4, 0);

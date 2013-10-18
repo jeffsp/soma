@@ -11,27 +11,25 @@ namespace soma
 {
 
 template<typename T>
-struct vec2
-{
-    T x, y;
-    vec2 (T x, T y) : x (x), y (y) { }
-    vec2 () : x (0), y (0) { }
-};
-
 class point_delta
 {
     private:
     bool valid;
-    vec2<double> last_p;
-    vec2<double> current_p;
+    uint64_t max_dt;
+    T last_p;
+    T current_p;
     uint64_t last_t;
     uint64_t current_t;
     public:
-    point_delta ()
+    point_delta (uint64_t max_dt = 100000)
         : valid (false)
-    { }
-    void update (uint64_t ts, const double x, const double y)
+        , max_dt (max_dt)
     {
+    }
+    void update (uint64_t ts, const T &x)
+    {
+        if (dt () > max_dt)
+            reset ();
         if (valid)
         {
             last_p = current_p;
@@ -39,24 +37,20 @@ class point_delta
         }
         else
         {
-            last_p = vec2<double> (x, y);
+            last_p = x;
             last_t = ts;
         }
-        current_p = vec2<double> (x, y);
+        current_p = x;
         current_t = ts;
         valid = true;
     }
-    double dx () const
+    const T &current () const
     {
-        return current_p.x - last_p.x;
+        return current_p;
     }
-    double dy () const
+    const T &last () const
     {
-        return current_p.y - last_p.y;
-    }
-    double dr () const
-    {
-        return sqrt (dx () * dx () + dy () * dy ());
+        return last_p;
     }
     uint64_t dt () const
     {
