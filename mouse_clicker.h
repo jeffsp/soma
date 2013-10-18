@@ -27,6 +27,7 @@ class state_machine
     S state;
     typedef std::pair<S,E> id;
     std::map<id,A> actions;
+    A default_action;
     std::map<id,S> next_states;
     public:
     void add (S state, E event, A action, S next_state)
@@ -35,26 +36,30 @@ class state_machine
         actions[id] = action;
         next_states[id] = next_state;
     }
-    void init (S s)
+    void init (S s, A d)
     {
         state = s;
+        default_action = d;
     }
-    void record (E event)
+    template<typename OBJ>
+    void record (E event, OBJ &obj)
     {
         return;
         id id = make_pair (state, event);
         A a = actions[id];
         assert (a != nullptr);
-        a ();
+        (obj.*a) ();
         state = next_states[id];
+    }
+    void set_state (S s)
+    {
+        state = s;
     }
     S get_state () const
     {
         return state;
     }
 };
-
-void start_open_timer () { }
 
 class pinch_detector
 {
@@ -67,12 +72,14 @@ class pinch_detector
     static const uint64_t CLOSED_TIME2 = 300000;
     static const int OPEN_MIN = 60;
     point_delta<double> dd;
-    state_machine<state,event,void (*) ()> sm;
+    typedef void (pinch_detector::*member_function)();
+    state_machine<state,event,member_function> sm;
     public:
+    void start_open_timer () { }
     pinch_detector ()
     {
-        sm.init (state::null);
-        sm.add (state::null, event::open, start_open_timer, state::open);
+        sm.init (state::null, &pinch_detector::reset);
+        sm.add (state::null, event::open, &pinch_detector::start_open_timer, state::open);
     }
     bool is_set () const
     {
@@ -80,7 +87,7 @@ class pinch_detector
     }
     void reset ()
     {
-        sm.init (state::null);
+        sm.set_state (state::null);
         dd.reset ();
     }
     bool maybe () const
@@ -108,7 +115,7 @@ class pinch_detector
             break;
             case 0:
             case 1: // d = 0.0
-            sm.record (event::zero);
+            sm.record (event::zero, *this);
             break;
             case 2:
             {
@@ -117,13 +124,13 @@ class pinch_detector
                 if (d > OPEN_MIN)
                 {
                     if (dd.current () < dd.last ())
-                        sm.record (event::closer);
+                        sm.record (event::closer, *this);
                     else
-                        sm.record (event::open);
+                        sm.record (event::open, *this);
                 }
                 else
                 {
-                    sm.record (event::closed);
+                    sm.record (event::closed, *this);
                 }
             }
         }
