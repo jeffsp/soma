@@ -71,7 +71,7 @@ class mouse_scroller
         if (fabs (dy.current () - dy.last ()) < 0.1)
             return;
         // check the guard
-        if (can_click.guarded (ts))
+        if (can_click.is_on (ts))
             return;
         // place a guard
         // TODO make a parameter
