@@ -8,6 +8,7 @@
 #include "finger_id_tracker.h"
 #include "hand_sample.h"
 #include "Leap.h"
+#include <unistd.h>
 
 using namespace std;
 using namespace soma;

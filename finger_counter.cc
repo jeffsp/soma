@@ -8,6 +8,7 @@
 #include "hand_sample.h"
 #include "Leap.h"
 #include <stdexcept>
+#include <unistd.h>
 
 using namespace std;
 using namespace soma;
