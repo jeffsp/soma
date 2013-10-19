@@ -15,6 +15,7 @@
 #include <cassert>
 #include <fstream>
 #include <map>
+#include <unistd.h>
 #include <utility>
 
 namespace soma
@@ -32,7 +33,7 @@ class state_machine
     public:
     void add (S state, E event, A action, S next_state)
     {
-        id id = make_pair (state, event);
+        id id = std::make_pair (state, event);
         actions[id] = action;
         next_states[id] = next_state;
     }
@@ -42,13 +43,13 @@ class state_machine
         default_action = d;
     }
     template<typename OBJ>
-    void record (E event, OBJ &obj)
+    void record (E event, OBJ &obj, uint64_t ts)
     {
         return;
-        id id = make_pair (state, event);
+        id id = std::make_pair (state, event);
         A a = actions[id];
         assert (a != nullptr);
-        (obj.*a) ();
+        (obj.*a) (ts);
         state = next_states[id];
     }
     void set_state (S s)
@@ -67,28 +68,38 @@ class pinch_detector
     // state machine definition
     enum class state { null, open, open_ready, closer, zero, closed, done };
     enum class event { open, closer, closed, zero, open_timer_done, closed_timer1_done, closed_timer2_done };
-    static const uint64_t OPEN_TIME = 300000;
-    static const uint64_t CLOSED_TIME1 = 300000;
-    static const uint64_t CLOSED_TIME2 = 300000;
+    static const uint64_t OPEN_TIMER_DURATION = 300000;
+    static const uint64_t CLOSED_TIMER_DURATION1 = 300000;
+    static const uint64_t CLOSED_TIMER_DURATION2 = 300000;
     static const int OPEN_MIN = 60;
     point_delta<double> dd;
-    typedef void (pinch_detector::*member_function)();
+    typedef void (pinch_detector::*member_function)(uint64_t);
     state_machine<state,event,member_function> sm;
+    time_guard open_timer;
+    time_guard closed_timer1;
+    time_guard closed_timer2;
     public:
-    void start_open_timer () { }
-    pinch_detector ()
-    {
-        sm.init (state::null, &pinch_detector::reset);
-        sm.add (state::null, event::open, &pinch_detector::start_open_timer, state::open);
-    }
-    bool is_set () const
-    {
-        return sm.get_state () == state::done;
-    }
-    void reset ()
+    // actions
+    void reset (uint64_t ts)
     {
         sm.set_state (state::null);
         dd.reset ();
+    }
+    void start_open_timer (uint64_t ts)
+    {
+        open_timer.turn_on (ts, OPEN_TIMER_DURATION);
+    }
+    pinch_detector ()
+    {
+        sm.init (state::null, &pinch_detector::reset);
+        //      state        event         action                            next state
+        //      -----        -----         ------                            ----------
+        sm.add (state::null, event::open, &pinch_detector::start_open_timer, state::open);
+    }
+    // public functions
+    bool is_set () const
+    {
+        return sm.get_state () == state::done;
     }
     bool maybe () const
     {
@@ -115,7 +126,7 @@ class pinch_detector
             break;
             case 0:
             case 1: // d = 0.0
-            sm.record (event::zero, *this);
+            sm.record (event::zero, *this, ts);
             break;
             case 2:
             {
@@ -124,13 +135,13 @@ class pinch_detector
                 if (d > OPEN_MIN)
                 {
                     if (dd.current () < dd.last ())
-                        sm.record (event::closer, *this);
+                        sm.record (event::closer, *this, ts);
                     else
-                        sm.record (event::open, *this);
+                        sm.record (event::open, *this, ts);
                 }
-                else
+                else // d < OPEN_MIN
                 {
-                    sm.record (event::closed, *this);
+                    sm.record (event::closed, *this, ts);
                 }
             }
         }
@@ -170,7 +181,7 @@ class mouse_clicker
             return false;
         if (pd.is_set ())
         {
-            pd.reset ();
+            pd.reset (ts);
             return true;
         }
         return false;
