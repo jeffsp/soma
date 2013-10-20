@@ -30,15 +30,17 @@ class pinch_detector
     enum class event { open, closer, closed };
     typedef void (pinch_detector::*member_function)(uint64_t);
     state_machine<state,event,member_function> sm;
+    // distinguish between open and closed
+    static const int OPEN_MIN = 50;
     // timer support
     static const uint64_t OPEN_TIMER_DURATION = 300000;
-    static const uint64_t CLOSED_TIMER_DURATION1 = 300000;
-    static const uint64_t CLOSED_TIMER_DURATION2 = 300000;
-    static const int OPEN_MIN = 60;
-    point_delta<double> dd;
+    static const uint64_t CLOSED_TIMER_DURATION1 = 250000;
+    static const uint64_t CLOSED_TIMER_DURATION2 = 500000;
     time_guard open_timer;
     time_guard closed_timer1;
     time_guard closed_timer2;
+    // determine is the fingers are open, but getting closer
+    point_delta<double> dd;
     public:
     // actions
     void start_open_timer (uint64_t ts)
