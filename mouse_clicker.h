@@ -25,36 +25,52 @@ namespace soma
 class pinch_detector
 {
     private:
-    // state machine definition
-    enum class state { null, open, open_ready, closer, zero, closed, done };
-    enum class event { open, closer, closed, zero, open_timer_done, closed_timer1_done, closed_timer2_done };
+    // state machine definitions
+    enum class state { null, open, closer, closed, done };
+    enum class event { open, closer, closed };
+    typedef void (pinch_detector::*member_function)(uint64_t);
+    state_machine<state,event,member_function> sm;
+    // timer support
     static const uint64_t OPEN_TIMER_DURATION = 300000;
     static const uint64_t CLOSED_TIMER_DURATION1 = 300000;
     static const uint64_t CLOSED_TIMER_DURATION2 = 300000;
     static const int OPEN_MIN = 60;
     point_delta<double> dd;
-    typedef void (pinch_detector::*member_function)(uint64_t);
-    state_machine<state,event,member_function> sm;
     time_guard open_timer;
     time_guard closed_timer1;
     time_guard closed_timer2;
     public:
     // actions
-    void reset (uint64_t ts)
-    {
-        sm.set_state (state::null);
-        dd.reset ();
-    }
     void start_open_timer (uint64_t ts)
     {
         open_timer.turn_on (ts, OPEN_TIMER_DURATION);
     }
+    void do_nothing (uint64_t)
+    {
+    }
+    void reset (uint64_t ts)
+    {
+        dd.reset ();
+        open_timer.reset ();
+        closed_timer1.reset ();
+        closed_timer2.reset ();
+    }
+    void start_closed_timer (uint64_t ts)
+    {
+        closed_timer1.turn_on (ts, CLOSED_TIMER_DURATION1);
+        closed_timer2.turn_on (ts, CLOSED_TIMER_DURATION2);
+    }
     pinch_detector ()
     {
-        sm.init (state::null, &pinch_detector::reset);
-        //      state        event         action                            next state
-        //      -----        -----         ------                            ----------
-        sm.add (state::null, event::open, &pinch_detector::start_open_timer, state::open);
+        sm.init (state::null);
+        //      state           event           action                                  next state
+        //      -----           -----           ------                                  ----------
+        sm.add (state::null,    event::open,    &pinch_detector::start_open_timer,      state::open);
+        sm.add (state::open,    event::closer,  &pinch_detector::do_nothing,            state::closer);
+        sm.add (state::closer,  event::open,    &pinch_detector::do_nothing,            state::open);
+        sm.add (state::open,    event::closed,  &pinch_detector::start_closed_timer,    state::closed);
+        sm.add (state::closer,  event::closed,  &pinch_detector::start_closed_timer,    state::closed);
+        sm.add (state::closed,  event::open,    &pinch_detector::do_nothing,            state::done);
     }
     // public functions
     bool is_set () const
@@ -69,10 +85,8 @@ class pinch_detector
             assert (0); // logic error
             case state::null:
             case state::open:
-            case state::open_ready:
             return false;
             case state::closer:
-            case state::zero:
             case state::closed:
             case state::done:
             return true;
@@ -86,7 +100,6 @@ class pinch_detector
             break;
             case 0:
             case 1: // d = 0.0
-            sm.record (event::zero, *this, ts);
             break;
             case 2:
             {
