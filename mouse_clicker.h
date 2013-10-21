@@ -26,66 +26,54 @@ class pinch_detector
 {
     private:
     // state machine definitions
-    enum class state { reset, open, closer, closed, done };
-    enum class event { open, closer, closed, reset, done };
+    enum class state { start, open_waiting, open, closed_waiting, closed, accepted };
+    enum class event { invalid, open, timer1, closed, timer2, timer3 };
     typedef void (pinch_detector::*member_function)(uint64_t);
     state_machine<state,event,member_function> sm;
     // distinguish between open and closed
     static const int OPEN_MIN = 50;
     // timer support
-    static const uint64_t OPEN_TIMER_DURATION = 300000;
-    static const uint64_t CLOSED_TIMER_DURATION1 = 250000;
-    static const uint64_t CLOSED_TIMER_DURATION2 = 500000;
-    time_guard open_timer;
-    time_guard closed_timer1;
-    time_guard closed_timer2;
+    static const uint64_t TIMER1_DURATION = 300000;
+    static const uint64_t TIMER2_DURATION = 250000;
+    static const uint64_t TIMER3_DURATION = 500000;
+    time_guard timer1;
+    time_guard timer2;
+    time_guard timer3;
     // determine is the fingers are open, but getting closer
-    point_delta<double> dd;
-    // make sure you have at least one non-zero closed sample
-    bool non_zero_closed;
+    //point_delta<double> dd;
     public:
     // actions
-    void start_open_timer (uint64_t ts)
-    {
-        open_timer.turn_on (ts, OPEN_TIMER_DURATION);
-    }
-    void do_nothing (uint64_t)
-    {
-    }
-    void reset (uint64_t ts)
-    {
-        sm.set_state (state::reset);
-        dd.reset ();
-        open_timer.reset ();
-        closed_timer1.reset ();
-        closed_timer2.reset ();
-        non_zero_closed = false;
-    }
-    void start_closed_timer (uint64_t ts)
-    {
-        closed_timer1.turn_on (ts, CLOSED_TIMER_DURATION1);
-        closed_timer2.turn_on (ts, CLOSED_TIMER_DURATION2);
-    }
+    void do_nothing (uint64_t) { }
+    void start_timer1 (uint64_t ts) { timer1.turn_on (ts, TIMER1_DURATION); }
+    void start_timer2 (uint64_t ts) { timer2.turn_on (ts, TIMER2_DURATION); }
+    void start_timer3 (uint64_t ts) { timer3.turn_on (ts, TIMER3_DURATION); }
+    /// @brief constructor
     pinch_detector ()
     {
-        non_zero_closed = false;
-        sm.set_state (state::reset);
-        //      state           event           action                                  next state
-        //      -----           -----           ------                                  ----------
-        sm.add (state::reset,   event::open,    &pinch_detector::start_open_timer,      state::open);
-        sm.add (state::open,    event::closer,  &pinch_detector::do_nothing,            state::closer);
-        sm.add (state::closer,  event::open,    &pinch_detector::do_nothing,            state::open);
-        sm.add (state::open,    event::closed,  &pinch_detector::start_closed_timer,    state::closed);
-        sm.add (state::closer,  event::closed,  &pinch_detector::start_closed_timer,    state::closed);
-        sm.add (state::closed,  event::open,    &pinch_detector::do_nothing,            state::done);
-        sm.add (state::open,    event::reset,   &pinch_detector::reset,                 state::reset);
-        sm.add (state::closer,  event::reset,   &pinch_detector::reset,                 state::reset);
-        sm.add (state::closed,  event::reset,   &pinch_detector::reset,                 state::reset);
+        sm.init (state::start);
+        //      state                   event           action                          next state
+        //      -----                   -----           ------                          ----------
+        sm.add (state::start,           event::open,    &pinch_detector::start_timer1,  state::open_waiting);
+        sm.add (state::open_waiting,    event::open,    &pinch_detector::do_nothing,    state::open_waiting);
+        sm.add (state::open_waiting,    event::timer1,  &pinch_detector::do_nothing,    state::open);
+        sm.add (state::open,            event::open,    &pinch_detector::do_nothing,    state::open);
+        sm.add (state::open,            event::closed,  &pinch_detector::start_timer2,  state::closed_waiting);
+        sm.add (state::closed_waiting,  event::closed,  &pinch_detector::do_nothing,    state::closed_waiting);
+        sm.add (state::closed_waiting,  event::timer2,  &pinch_detector::start_timer3,  state::closed);
+        sm.add (state::closed,          event::closed,  &pinch_detector::do_nothing,    state::closed);
+        sm.add (state::closed,          event::open,    &pinch_detector::do_nothing,    state::accepted);
     }
     // public functions
     bool is_set () const
     {
-        return sm.get_state () == state::done;
+        return sm.get_state () == state::accepted;
+    }
+    void reset ()
+    {
+        sm.init (state::start);
+        timer1.reset ();
+        timer2.reset ();
+        timer3.reset ();
     }
     bool maybe () const
     {
@@ -93,75 +81,60 @@ class pinch_detector
         {
             default:
             assert (0); // logic error
-            case state::reset:
+            case state::start:
+            case state::open_waiting:
             case state::open:
             return false;
-            case state::closer:
+            case state::closed_waiting:
             case state::closed:
-            case state::done:
             return true;
         }
     }
     void update (const uint64_t ts, const hand_sample &s)
     {
+        if (timer1.is_set () && !timer1.is_on (ts))
+        {
+            timer1.reset ();
+            sm.record (event::timer1, *this, ts);
+        }
+        else if (timer2.is_set () && !timer2.is_on (ts))
+        {
+            timer2.reset ();
+            sm.record (event::timer2, *this, ts);
+        }
+        else if (timer3.is_set () && !timer3.is_on (ts))
+        {
+            timer3.reset ();
+            sm.record (event::timer3, *this, ts);
+        }
         switch (s.size ())
         {
-            default: // do nothing
-            break;
+            default:
+            {
+                sm.record (event::invalid, *this, ts);
+                break;
+            }
             case 0:
-            case 1: // d = 0.0
-            break;
+            case 1:
+            {
+                // d = 0.0
+                sm.record (event::closed, *this, ts);
+                break;
+            }
             case 2:
             {
                 double d = s[0].position.distanceTo (s[1].position);
-                dd.update (ts, d);
-                switch (sm.get_state ())
+                //dd.update (ts, d);
+                if (d > OPEN_MIN)
                 {
-                    default:
-                    assert (0); // logic error
-                    break;
-                    case state::reset:
-                    {
-                        if (d > OPEN_MIN)
-                            sm.record (event::open, *this, ts);
-                    }
-                    break;
-                    case state::open:
-                    case state::closer:
-                    {
-                        if (d > OPEN_MIN)
-                        {
-                            if (dd.current () < dd.last ())
-                                sm.record (event::closer, *this, ts);
-                        }
-                        else // d < OPEN_MIN
-                        {
-                            if (open_timer.is_on (ts))
-                                sm.record (event::reset, *this, ts);
-                            else
-                                sm.record (event::closed, *this, ts);
-                        }
-                    }
-                    break;
-                    case state::closed:
-                    {
-                        if (d > OPEN_MIN)
-                        {
-                            if (closed_timer1.is_on (ts))
-                                sm.record (event::reset, *this, ts);
-                            else if (closed_timer2.is_on (ts) && non_zero_closed)
-                                sm.record (event::done, *this, ts);
-                            else if (!closed_timer2.is_on (ts))
-                                sm.record (event::done, *this, ts);
-                        }
-                        else // d < OPEN_MIN
-                        {
-                            if (d > std::numeric_limits<float>::min ())
-                                non_zero_closed = true;
-                        }
-                    }
-                    break;
+                    //if (dd.current () > dd.last ())
+                    sm.record (event::open, *this, ts);
                 }
+                else // d < OPEN_MIN
+                {
+                    sm.record (event::closed, *this, ts);
+                }
+                break;
             }
         }
     }
@@ -199,10 +172,7 @@ class mouse_clicker
         if (can_click.is_on (ts))
             return false;
         if (pd.is_set ())
-        {
-            pd.reset (ts);
             return true;
-        }
         return false;
     }
     bool did_left_click (uint64_t ts) const
@@ -239,6 +209,8 @@ class mouse_clicker
     }
     void pinch (uint64_t ts)
     {
+        // reset it
+        pd.reset ();
         // guard it so we don't pinch multiple times
         can_click.turn_on (ts, CLICK_GUARD_DURATION);
     }

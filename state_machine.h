@@ -27,11 +27,21 @@ class state_machine
     typedef std::map<id,S> state_map;
     /// @brief current state
     S state;
+    /// @brief default state
+    S default_state;
     /// @brief map an id to an action
     action_map actions;
     /// @brief map an id to the next state
     state_map next_states;
     public:
+    /// @brief set the default state
+    ///
+    /// @param s state
+    void init (S s)
+    {
+        state = s;
+        default_state = s;
+    }
     /// @brief initialize the action/next_state maps
     ///
     /// @param state current state
@@ -53,29 +63,23 @@ class state_machine
     template<typename OBJ>
     void record (E event, OBJ &obj, uint64_t ts)
     {
-        std::clog << "state: " << int (state);
-        std::clog << "\tevent: " << int (event);
+        //std::clog << "state: " << int (state);
+        //std::clog << "\tevent: " << int (event);
         id id = std::make_pair (state, event);
-        // if there is no entry, don't do anything
+        // reset if no action specified
         if (actions.find (id) == actions.end ())
         {
-            std::clog << "\tno action" << std::endl;
+            //std::clog << "\tinit" << std::endl;
+            state = default_state;
             return;
         }
         A a = actions[id];
         assert (a != nullptr);
         (obj.*a) (ts);
-        // if the action was found, the next_state must be found
+        // there must be a next_state for each action
         assert (next_states.find (id) != next_states.end ());
         state = next_states[id];
-        std::clog << "\tstate: " << int (state) << std::endl;
-    }
-    /// @brief set the state
-    ///
-    /// @param s state
-    void set_state (S s)
-    {
-        state = s;
+        //std::clog << "\tstate: " << int (state) << std::endl;
     }
     /// @brief get the current state
     ///
