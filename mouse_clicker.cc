@@ -39,12 +39,14 @@ class grabber : public Leap::Listener
             std::clog << "left click" << std::endl;
         if (mc.did_right_click (ts))
             std::clog << "right click" << std::endl;
+        /*
         if (mc.maybe_pinched (ts))
             std::clog << "maybe pinched" << std::endl;
         if (mc.maybe_left_clicked (ts))
             std::clog << "maybe left clicked" << std::endl;
         if (mc.maybe_right_clicked (ts))
             std::clog << "maybe right clicked" << std::endl;
+        */
     }
 };
 
