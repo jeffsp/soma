@@ -26,19 +26,17 @@ class pinch_detector
 {
     private:
     // state machine definitions
-    enum class state { start, open_waiting, open, closed_waiting, closed, accepted };
-    enum class event { invalid, open, timer1, closed, timer2, timer3 };
+    enum class state { start, open_waiting, open, zero, closed, accepted };
+    enum class event { invalid, open, timer1, zero, closed, timer2 };
     typedef void (pinch_detector::*member_function)(uint64_t);
     state_machine<state,event,member_function> sm;
     // distinguish between open and closed
     static const int OPEN_MIN = 50;
     // timer support
     static const uint64_t TIMER1_DURATION = 300000;
-    static const uint64_t TIMER2_DURATION = 250000;
-    static const uint64_t TIMER3_DURATION = 500000;
+    static const uint64_t TIMER2_DURATION = 600000;
     time_guard timer1;
     time_guard timer2;
-    time_guard timer3;
     // determine is the fingers are open, but getting closer
     //point_delta<double> dd;
     public:
@@ -46,7 +44,6 @@ class pinch_detector
     void do_nothing (uint64_t) { }
     void start_timer1 (uint64_t ts) { timer1.turn_on (ts, TIMER1_DURATION); }
     void start_timer2 (uint64_t ts) { timer2.turn_on (ts, TIMER2_DURATION); }
-    void start_timer3 (uint64_t ts) { timer3.turn_on (ts, TIMER3_DURATION); }
     /// @brief constructor
     pinch_detector ()
     {
@@ -57,9 +54,10 @@ class pinch_detector
         sm.add (state::open_waiting,    event::open,    &pinch_detector::do_nothing,    state::open_waiting);
         sm.add (state::open_waiting,    event::timer1,  &pinch_detector::do_nothing,    state::open);
         sm.add (state::open,            event::open,    &pinch_detector::do_nothing,    state::open);
-        sm.add (state::open,            event::closed,  &pinch_detector::start_timer2,  state::closed_waiting);
-        sm.add (state::closed_waiting,  event::closed,  &pinch_detector::do_nothing,    state::closed_waiting);
-        sm.add (state::closed_waiting,  event::timer2,  &pinch_detector::start_timer3,  state::closed);
+        sm.add (state::open,            event::zero,    &pinch_detector::do_nothing,    state::zero);
+        sm.add (state::open,            event::closed,  &pinch_detector::do_nothing,    state::closed);
+        sm.add (state::zero,            event::zero,    &pinch_detector::do_nothing,    state::zero);
+        sm.add (state::zero,            event::closed,  &pinch_detector::do_nothing,    state::closed);
         sm.add (state::closed,          event::closed,  &pinch_detector::do_nothing,    state::closed);
         sm.add (state::closed,          event::open,    &pinch_detector::do_nothing,    state::accepted);
     }
@@ -73,7 +71,6 @@ class pinch_detector
         sm.init (state::start);
         timer1.reset ();
         timer2.reset ();
-        timer3.reset ();
     }
     bool maybe () const
     {
@@ -85,8 +82,9 @@ class pinch_detector
             case state::open_waiting:
             case state::open:
             return false;
-            case state::closed_waiting:
+            case state::zero:
             case state::closed:
+            case state::accepted:
             return true;
         }
     }
@@ -102,11 +100,6 @@ class pinch_detector
             timer2.reset ();
             sm.record (event::timer2, *this, ts);
         }
-        else if (timer3.is_set () && !timer3.is_on (ts))
-        {
-            timer3.reset ();
-            sm.record (event::timer3, *this, ts);
-        }
         switch (s.size ())
         {
             default:
@@ -118,7 +111,7 @@ class pinch_detector
             case 1:
             {
                 // d = 0.0
-                sm.record (event::closed, *this, ts);
+                sm.record (event::zero, *this, ts);
                 break;
             }
             case 2:
@@ -132,7 +125,10 @@ class pinch_detector
                 }
                 else // d < OPEN_MIN
                 {
-                    sm.record (event::closed, *this, ts);
+                    if (d > std::numeric_limits<float>::min ())
+                        sm.record (event::closed, *this, ts);
+                    else
+                        sm.record (event::zero, *this, ts);
                 }
                 break;
             }
@@ -172,6 +168,10 @@ class mouse_clicker
         if (can_click.is_on (ts))
             return false;
         if (pd.is_set ())
+            return true;
+        std::vector<int> s = k.key_states ();
+        // was alt pressed?
+        if (s[2] || s[3])
             return true;
         return false;
     }
