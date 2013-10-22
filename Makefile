@@ -3,7 +3,7 @@ all:
 	$(MAKE) -C tests
 
 run: all
-	./build/debug/soma_mouse
+	./build/debug/test1
 
 check: all
 	$(MAKE) -C tests check
