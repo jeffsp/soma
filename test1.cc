@@ -16,8 +16,8 @@ enum class point_mode { fast, slow };
 class test1 : public Leap::Listener
 {
     private:
-    static const uint64_t SW_DURATION = 50000;
-    static const uint64_t SWS_DURATION = 300000;
+    static const uint64_t SW_DURATION = 100000;
+    static const uint64_t SWS_DURATION = 200000;
     sliding_window<double> swx;
     sliding_window<double> swy;
     sliding_window<double> swx2;
@@ -38,15 +38,13 @@ class test1 : public Leap::Listener
     point_delta<vec3> dd;
     unsigned mapx (const double theta) const
     {
-        // 170,100 -> 0,width
-        double t = 1 - (theta - 10) / 60;
+        double t = (theta - 100) / 60;
         //std::clog << "theta " << theta << "\tx " << t << std::endl;
         return t * m.width ();
     }
     unsigned mapy (const double theta) const
     {
-        // 170,100 -> 0,height
-        double t = (theta - 50) / 80;
+        double t = 1 - (theta - 40) / 60;
         //std::clog << "theta " << theta << "\ty " << t << std::endl;
         return t * m.height ();
     }
@@ -66,10 +64,10 @@ class test1 : public Leap::Listener
             vec3 p1 = s[1].position;
             float dx = p1.x - p0.x;
             float dy = p1.y - p0.y;
-            float dz = p0.z - p1.z;
+            float dz = p1.z - p0.z;
             float zx_slope = atan2 (dz, dx) * 180 / M_PI;
             float zy_slope = atan2 (dz, dy) * 180 / M_PI;
-            //std::clog << zx_slope << std::endl;
+            //std::clog << zy_slope << std::endl;
             double x = mapx (zx_slope);
             double y = mapy (zy_slope);
             swx.add (ts, x, smooth_x);
@@ -80,7 +78,7 @@ class test1 : public Leap::Listener
             const double sy = smooth_y.get_mean ();
             const double vx = smooth_x2.get_mean () - sx * sx;
             const double vy = smooth_y2.get_mean () - sy * sy;
-            if (vx < 15 && vy < 15)
+            if (vx < 50 && vy < 50)
                 pm = point_mode::slow;
             else
                 pm = point_mode::fast;
@@ -140,8 +138,10 @@ class test1 : public Leap::Listener
             done = true;
             return;
         }
+        hand_sample tmp (s);
+        sort (tmp.begin (), tmp.end (), sort_back_to_front);
         // update the mouse
-        update (ts, s);
+        update (ts, tmp);
     }
 };
 int main (int argc, char **argv)
