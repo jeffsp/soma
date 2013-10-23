@@ -51,6 +51,10 @@ class sample_dumper : public Leap::Listener
             // we are done
             done = true;
         }
+        else if (p.count () == 1)
+        {
+            cout << p[0].tipPosition () << std::endl;
+        }
         else if (p.count () == 2)
         {
             // dump the samples
