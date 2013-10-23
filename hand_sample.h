@@ -45,6 +45,11 @@ bool sort_top_to_bottom (const finger &a, const finger &b)
     return a.position.y > b.position.y;
 }
 
+bool sort_back_to_front (const finger &a, const finger &b)
+{
+    return a.position.z < b.position.z;
+}
+
 class hand_sample : public std::vector<finger>
 {
     public:
