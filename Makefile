@@ -3,7 +3,7 @@ all:
 	$(MAKE) -C tests
 
 run: all
-	./build/debug/test1
+	./build/debug/test2
 
 check: all
 	$(MAKE) -C tests check
