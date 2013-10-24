@@ -22,29 +22,29 @@ class test1 : public Leap::Listener
     sliding_window<double> swy;
     sliding_window<double> swx2;
     sliding_window<double> swy2;
-    sliding_window<double> swxs;
-    sliding_window<double> swys;
+    sliding_window<double> swdx;
+    sliding_window<double> swdy;
     running_mean smooth_x;
     running_mean smooth_y;
     running_mean smooth_x2;
     running_mean smooth_y2;
-    running_mean smooth_xs;
-    running_mean smooth_ys;
+    running_mean smooth_dx;
+    running_mean smooth_dy;
     static const uint64_t FINGER_COUNTER_WINDOW_DURATION = 200000;
     bool done;
     finger_counter fc;
     mouse m;
     point_mode pm;
     point_delta<vec3> dd;
-    unsigned mapx (const double theta) const
+    double mapx (const double theta) const
     {
-        double t = (theta - 100) / 60;
+        double t = (theta - 80) / 50;
         //std::clog << "theta " << theta << "\tx " << t << std::endl;
         return t * m.width ();
     }
-    unsigned mapy (const double theta) const
+    double mapy (const double theta) const
     {
-        double t = 1 - (theta - 40) / 60;
+        double t = 1 - (theta - 60) / 50;
         //std::clog << "theta " << theta << "\ty " << t << std::endl;
         return t * m.height ();
     }
@@ -62,11 +62,11 @@ class test1 : public Leap::Listener
             // get slopes
             vec3 p0 = s[0].position;
             vec3 p1 = s[1].position;
-            float dx = p1.x - p0.x;
-            float dy = p1.y - p0.y;
-            float dz = p1.z - p0.z;
-            float zx_slope = atan2 (dz, dx) * 180 / M_PI;
-            float zy_slope = atan2 (dz, dy) * 180 / M_PI;
+            const double fdx = p1.x - p0.x;
+            const double fdy = p1.y - p0.y;
+            const double fdz = p1.z - p0.z;
+            const double zx_slope = atan2 (fdz, fdx) * 180 / M_PI;
+            const double zy_slope = atan2 (fdz, fdy) * 180 / M_PI;
             //std::clog << zy_slope << std::endl;
             double x = mapx (zx_slope);
             double y = mapy (zy_slope);
@@ -78,7 +78,12 @@ class test1 : public Leap::Listener
             const double sy = smooth_y.get_mean ();
             const double vx = smooth_x2.get_mean () - sx * sx;
             const double vy = smooth_y2.get_mean () - sy * sy;
-            if (vx < 50 && vy < 50)
+            const double dx = dd.current ().x - dd.last ().x;
+            const double dy = dd.last ().y - dd.current ().y;
+            swdx.add (ts, dx, smooth_dx);
+            swdy.add (ts, dy, smooth_dy);
+            std::clog << dx << '\t' << dy << std::endl;
+            if (dx < 0.1 && dy < 0.1)
                 pm = point_mode::slow;
             else
                 pm = point_mode::fast;
@@ -88,11 +93,7 @@ class test1 : public Leap::Listener
                 default: assert (0); // logic error
                 case point_mode::slow:
                 {
-                    x = dd.current ().x - dd.last ().x;
-                    y = dd.last ().y - dd.current ().y;
-                    swxs.add (ts, x, smooth_xs);
-                    swys.add (ts, y, smooth_ys);
-                    m.move (5 * smooth_xs.get_mean (), 5 * smooth_ys.get_mean ());
+                    m.move (5 * smooth_dx.get_mean (), 5 * smooth_dy.get_mean ());
                     break;
                 }
                 case point_mode::fast:
@@ -109,8 +110,8 @@ class test1 : public Leap::Listener
         , swy (SW_DURATION)
         , swx2 (SW_DURATION)
         , swy2 (SW_DURATION)
-        , swxs (SWS_DURATION)
-        , swys (SWS_DURATION)
+        , swdx (SWS_DURATION)
+        , swdy (SWS_DURATION)
         , done (false)
         , fc (FINGER_COUNTER_WINDOW_DURATION)
         , pm (point_mode::slow)
