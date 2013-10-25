@@ -7,11 +7,13 @@
 #ifndef MOUSE_POINTER_H
 #define MOUSE_POINTER_H
 
-#include "touch_port.h"
-#include <fstream>
-
 namespace soma
 {
+
+double mm_to_pixels (const double mm)
+{
+    return mm * 3.7795;
+}
 
 class mouse_pointer
 {
@@ -21,9 +23,9 @@ class mouse_pointer
     sliding_window<double> swy;
     running_mean smooth_x;
     running_mean smooth_y;
+    point_delta<vec3> dd;
     mouse &m;
     double speed;
-    touch_port tp;
     public:
     mouse_pointer (mouse &m, double speed)
         : swx (SW_DURATION)
@@ -31,18 +33,15 @@ class mouse_pointer
         , m (m)
         , speed (speed)
     {
-        tp.set (vec3 (-150, 300, 0), vec3 (80, 301, 0), vec3 (-130, 160, 0), vec3 (90, 165, 0));
-        tp.write (std::clog);
-        tp.set_screen_dimensions (m.width (), m.height ());
     }
     void set_speed (double s)
     {
         if (s > 0.0)
             speed = s;
     }
-    void recenter (const vec3 &pos)
+    void center ()
     {
-        tp.recenter (pos);
+        m.set (m.width () / 2, m.height () / 2);
     }
     void clear ()
     {
@@ -51,13 +50,48 @@ class mouse_pointer
         smooth_x.reset ();
         smooth_y.reset ();
     }
-    void update (const uint64_t ts, const vec3 &pos)
+    void update (const uint64_t ts, const hand_sample &s)
     {
-        swx.add (ts, pos.x, smooth_x);
-        swy.add (ts, pos.y, smooth_y);
-        double x = smooth_x.get_mean ();
-        double y = smooth_y.get_mean ();
-        m.set (tp.mapx (x), tp.mapy (y));
+        if (s.size () == 2 || s.size () == 1)
+        {
+            const double MIND = 40;
+            const double MAXD = 100;
+            vec3 p = s[0].position;
+            double d = MIND;
+            if (s.size () == 2)
+            {
+                p = s[1].position;
+                d = s[0].position.distanceTo (s[1].position);
+            }
+            const double x = p.x;
+            const double y = p.y;
+            swx.add (ts, x, smooth_x);
+            swy.add (ts, y, smooth_y);
+            const double sx = smooth_x.get_mean ();
+            const double sy = smooth_y.get_mean ();
+            // get index pointer
+            dd.update (ts, vec3 (sx, sy, 0));
+            const double dx = dd.current ().x - dd.last ().x;
+            const double dy = dd.last ().y - dd.current ().y;
+            const double MING = 0.5;
+            const double MAXG = 5.0;
+            double gain = (d - MIND) / MAXD;
+            gain = gain < 0.0 ? 0.0 : gain;
+            gain = gain > 1.0 ? 1.0 : gain;
+            gain = gain * (MAXG - MING) + MING;
+            // make sure time delta is a reasonable value
+            if (dd.dt () == 0 || dd.dt () > 500000)
+                return;
+            // make it independent of framerate
+            const double fr = 1000000.0 / dd.dt ();
+            const double mx = dx * 100 / fr;
+            const double my = dy * 100 / fr;
+            // convert to pixels
+            const double px =  mm_to_pixels (mx);
+            const double py =  mm_to_pixels (my);
+            //std::clog << fr << '\t' << px << '\t' << py << std::endl;
+            m.move (gain * px, gain * py);
+        }
     }
 };
 
