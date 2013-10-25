@@ -21,7 +21,6 @@ namespace soma
 class soma_mouse : public Leap::Listener
 {
     private:
-    static const uint64_t STOP_GUARD_DURATION = 2000000;
     static const uint64_t CENTER_DELAY_DURATION = 500000;
     bool done;
     const options &opts;
