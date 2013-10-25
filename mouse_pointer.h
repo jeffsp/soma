@@ -7,6 +7,8 @@
 #ifndef MOUSE_POINTER_H
 #define MOUSE_POINTER_H
 
+#include "touch_port.h"
+
 namespace soma
 {
 
@@ -23,8 +25,9 @@ class mouse_pointer
     sliding_window<double> swy;
     running_mean smooth_x;
     running_mean smooth_y;
-    point_delta<vec3> dd;
+    point_delta<vec3> dxy;
     mouse &m;
+    touch_port tp;
     double speed;
     public:
     mouse_pointer (mouse &m, double speed)
@@ -33,6 +36,8 @@ class mouse_pointer
         , m (m)
         , speed (speed)
     {
+        tp.set (vec3 (-200, 300, 0), vec3 (201, 310, 0),
+                vec3 (-150, 100, 0),   vec3 (155, 120, 0));
     }
     void set_speed (double s)
     {
@@ -65,14 +70,15 @@ class mouse_pointer
             }
             const double x = p.x;
             const double y = p.y;
+            std::clog << tp.mapx (x) << '\t' << tp.mapy (y) << std::endl;
             swx.add (ts, x, smooth_x);
             swy.add (ts, y, smooth_y);
             const double sx = smooth_x.get_mean ();
             const double sy = smooth_y.get_mean ();
             // get index pointer
-            dd.update (ts, vec3 (sx, sy, 0));
-            const double dx = dd.current ().x - dd.last ().x;
-            const double dy = dd.last ().y - dd.current ().y;
+            dxy.update (ts, vec3 (sx, sy, 0));
+            const double dx = dxy.current ().x - dxy.last ().x;
+            const double dy = dxy.last ().y - dxy.current ().y;
             const double MING = 0.5;
             const double MAXG = 5.0;
             double gain = (d - MIND) / MAXD;
@@ -80,10 +86,10 @@ class mouse_pointer
             gain = gain > 1.0 ? 1.0 : gain;
             gain = gain * (MAXG - MING) + MING;
             // make sure time delta is a reasonable value
-            if (dd.dt () == 0 || dd.dt () > 500000)
+            if (dxy.dt () == 0 || dxy.dt () > 500000)
                 return;
             // make it independent of framerate
-            const double fr = 1000000.0 / dd.dt ();
+            const double fr = 1000000.0 / dxy.dt ();
             const double mx = dx * 100 / fr;
             const double my = dy * 100 / fr;
             // convert to pixels
