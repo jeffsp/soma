@@ -2,8 +2,7 @@ all:
 	waf
 	$(MAKE) -C tests
 
-run: all
-	./build/debug/test2
+run: all mouse
 
 check: all
 	$(MAKE) -C tests check
