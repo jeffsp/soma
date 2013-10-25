@@ -82,31 +82,22 @@ class touch_port
         s << bl << std::endl;
         s << br << std::endl;
     }
-    int mapx (double x) const
+    double mapx (double x) const
     {
         const double A = std::min (tl.x, bl.x);
         const double B = std::max (tl.x, bl.x);
         const double C = std::min (tr.x, br.x);
         const double D = std::max (tr.x, br.x);
-        const double sx = map (x, A, B, C, D);
-        //std::clog << "sx " << sx << std::endl;
-        //std::clog << "x " << (1 - sx) * width << std::endl;
-        // map into centered +-640
-        return sx * 640 + width / 2 - 320;
+        return map (x, A, B, C, D);
     }
-    int mapy (double y) const
+    double mapy (double y) const
     {
         // interpolate to get 3d coord mapped into screen coordinate
         const double A = std::min (tl.y, bl.y);
         const double B = std::max (tl.y, bl.y);
         const double C = std::min (tr.y, br.y);
         const double D = std::max (tr.y, br.y);
-        const double sy = map (y, A, B, C, D);
-        //std::clog << "y " << y << " sy " << sy << std::endl;
-        //std::clog << "y " << (2 + sy) * height << std::endl;
-        //std::clog << (1 - sy) * 480 + height / 2 - 240 << std::endl;
-        // map into centered +-480
-        return  (1 - sy) * 480 + height / 2 - 240;
+        return map (y, A, B, C, D);
     }
 };
 
