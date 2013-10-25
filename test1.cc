@@ -76,8 +76,6 @@ class test1 : public Leap::Listener
             swy2.add (ts, y * y, smooth_y2);
             const double sx = smooth_x.get_mean ();
             const double sy = smooth_y.get_mean ();
-            const double vx = smooth_x2.get_mean () - sx * sx;
-            const double vy = smooth_y2.get_mean () - sy * sy;
             const double dx = dd.current ().x - dd.last ().x;
             const double dy = dd.last ().y - dd.current ().y;
             swdx.add (ts, dx, smooth_dx);
@@ -89,7 +87,6 @@ class test1 : public Leap::Listener
                 pm = point_mode::fast;
             switch (pm)
             {
-
                 default: assert (0); // logic error
                 case point_mode::slow:
                 {
