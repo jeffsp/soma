@@ -22,7 +22,6 @@ enum class hand_shape
     pointing = 1,
     scrolling = 2,
     centering = 3,
-    stopping = 4,
 };
 
 std::string to_string (const hand_shape s)
@@ -35,7 +34,6 @@ std::string to_string (const hand_shape s)
         case hand_shape::pointing: return std::string ("pointing");
         case hand_shape::scrolling: return std::string ("scrolling");
         case hand_shape::centering: return std::string ("centering");
-        case hand_shape::stopping: return std::string ("stopping");
     }
 }
 
@@ -47,31 +45,6 @@ class hand_shape_classifier
     sliding_window<hand_sample> swhs;
     hand_shape current;
     bool changed;
-    void update_finger_count2 (const hand_sample &s)
-    {
-        // if the sample does not have two fingers, we are in transition, so don't change anything
-        if (s.size () != 2)
-            return;
-        // get slope of two fingers in xy plane
-        vec3 p0 = s[0].position;
-        vec3 p1 = s[1].position;
-        // make sure first is lower than second
-        if (p0.y > p1.y)
-            std::swap (p0, p1);
-        // get the angles
-        float dx = abs (p0.x- p1.x);
-        float dy = abs (p0.y- p1.y);
-        float xy_slope = atan2 (dy, dx) * 180 / M_PI;
-        // make sure first is closer than second
-        if (p0.z > p1.z)
-            std::swap (p0, p1);
-        float dz = abs (p0.z- p1.z);
-        float xz_slope = atan2 (dz, dx) * 180 / M_PI;
-        if (xy_slope < 20 && xz_slope < 15)
-            current = hand_shape::scrolling;
-        else
-            current = hand_shape::pointing;
-    }
     void update (const hand_sample &s)
     {
         switch (fc.get_count ())
@@ -83,17 +56,18 @@ class hand_shape_classifier
                 current = hand_shape::zero;
             break;
             case 1:
+            case 2:
+                current = hand_shape::pointing;
                 current = hand_shape::pointing;
             break;
-            case 2:
-                update_finger_count2 (s);
-            break;
             case 3:
-                current = hand_shape::centering;
+                current = hand_shape::scrolling;
             break;
             case 4:
+                current = hand_shape::unknown;
+            break;
             case 5:
-                current = hand_shape::stopping;
+                current = hand_shape::centering;
             break;
         }
     }
