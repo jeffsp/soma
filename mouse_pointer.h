@@ -20,7 +20,7 @@ double mm_to_pixels (const double mm)
 class mouse_pointer
 {
     private:
-    static const uint64_t SW_DURATION = 50000;
+    static const uint64_t SW_DURATION = 100000;
     sliding_window<double> swx;
     sliding_window<double> swy;
     running_mean smooth_x;
@@ -70,7 +70,6 @@ class mouse_pointer
             }
             const double x = p.x;
             const double y = p.y;
-            std::clog << tp.mapx (x) << '\t' << tp.mapy (y) << std::endl;
             swx.add (ts, x, smooth_x);
             swy.add (ts, y, smooth_y);
             const double sx = smooth_x.get_mean ();
@@ -80,7 +79,7 @@ class mouse_pointer
             const double dx = dxy.current ().x - dxy.last ().x;
             const double dy = dxy.last ().y - dxy.current ().y;
             const double MING = 0.5;
-            const double MAXG = 5.0;
+            const double MAXG = 20.0;
             double gain = (d - MIND) / MAXD;
             gain = gain < 0.0 ? 0.0 : gain;
             gain = gain > 1.0 ? 1.0 : gain;
@@ -95,7 +94,6 @@ class mouse_pointer
             // convert to pixels
             const double px =  mm_to_pixels (mx);
             const double py =  mm_to_pixels (my);
-            //std::clog << fr << '\t' << px << '\t' << py << std::endl;
             m.move (gain * px, gain * py);
         }
     }
