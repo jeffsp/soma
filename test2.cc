@@ -13,16 +13,6 @@ const string usage = "usage: test2";
 
 enum class point_mode { fast, slow };
 
-double mm_to_pixels (const double mm)
-{
-    return mm * 3.7795;
-}
-
-double pixels_to_mm (const double pixels)
-{
-    return pixels / 3.7795;
-}
-
 class test2 : public Leap::Listener
 {
     private:
@@ -77,7 +67,7 @@ class test2 : public Leap::Listener
             // convert to pixels
             const double px =  mm_to_pixels (mx);
             const double py =  mm_to_pixels (my);
-            std::clog << fr << '\t' << px << '\t' << py << std::endl;
+            //std::clog << fr << '\t' << px << '\t' << py << std::endl;
             m.move (gain * px, gain * py);
         }
     }
